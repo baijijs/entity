@@ -3,6 +3,8 @@ Baiji Entity
 
 [![Build Status](https://travis-ci.org/baijijs/entity.svg)](https://travis-ci.org/baijijs/entity)
 
+Lead Maintainer: [Nick Jiang](https://github.com/nick-jiang)
+
 Expose API fields for endpoint user
 
 # Usage
