@@ -1,6 +1,8 @@
 Baiji Entity
 ============
 
+[![Build Status](https://travis-ci.org/baijijs/entity.svg)](https://travis-ci.org/baijijs/entity)
+
 Expose API fields for endpoint user
 
 # Usage
