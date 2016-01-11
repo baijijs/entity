@@ -88,6 +88,7 @@ UserEntity.add('isSignedIn', function(obj, options) {
 });
 UserEntity.add('birthday', { default: new Date('2015-10-10 10:00:00') });
 
+// The parsed output would be
 var user = {
   name: 'Felix Liu',
   age: 18,
@@ -104,4 +105,4 @@ var user = {
 
 # License
 
-* The MIT license
+MIT
