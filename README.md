@@ -45,12 +45,14 @@ Define entity one by one
 field name is constructed by characters of a-zA-Z0-9 and _
 
 valid options described as below:
-  as => set an alias name for field to expose
-  type => set validation type for exposed field
-  value => set expose value for exposed field
-  default => set default value for exposed field
-  if => set a filter for exposed field
-  using => set another Entity object as sub-entity
+``` bash
+# :as      => set an alias name for exposed field
+# :type    => set validation type for exposed field
+# :value   => set static value for exposed field
+# :default => set default value for exposed field
+# :if      => set a filter for exposed field
+# :using   => set another Entity object as sub-entity
+```
 
 `fn` is used to computing final exposed field value
 
