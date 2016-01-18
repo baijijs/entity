@@ -1,10 +1,10 @@
 /**
- * Expose `Entity`.
+ * Export
  */
 module.exports = Entity;
 
 /**
- * Module dependencies.
+ * Module dependencies
  */
 var util = require('util');
 var assert = require('assert');
@@ -12,7 +12,25 @@ var Normalizer = require('baiji-normalizer');
 var debug = require('debug')('baiji:entity');
 
 /**
- * @class A wrapper to map returns with object value.
+ * @method Validating method for Entity object value
+ * @param {true|String|Array|Object} val
+ * @return {Boolean}
+ *
+ * @api private
+ */
+function _validateValue(val) {
+  return val === true ||
+    Array.isArray(val) ||
+    util.isObject(val) ||
+    util.isFunction(val);
+}
+
+/**
+ * @class Entity constructor for mapping schema object with pre-defined object value for final return
+ * @param {Object} object
+ * @return {Entity}
+ *
+ * @api public
  */
 function Entity(object) {
   this._mappings = {};
@@ -26,6 +44,8 @@ function Entity(object) {
   for (var key in object) {
     if (object.hasOwnProperty(key)) {
       value = object[key];
+      assert(_validateValue(value), `Entity Define: object value for key ${key} is invalid, '${value}'`);
+
       if (value === true) {
         this.add(key);
       } else if (Array.isArray(value)){
@@ -36,47 +56,66 @@ function Entity(object) {
       }
     }
   }
+  return this;
 }
 
 /**
- * check whether an object is an Entity instance
+ * @method Check whether an object is an Entity instance
+ * @param {Entity} entity
+ * @return {Boolean}
+ *
+ * @api public
  */
 Entity.isEntity = function(entity) {
-  return !!(entity && util.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
+  return !!(util.isObject(entity) && util.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
 };
 
+/**
+ * @method For Entity instance this always return true
+ * @param {any} entity
+ * @return {Boolean}
+ *
+ * @api public
+ */
 Entity.prototype.isEntity = function(entity) {
   return this instanceof Entity;
 };
 
 /**
- * add a given name with or without corresponding function or value
- * { act: 'alias',
- *   value: 'name',
- *   default: null,
- *   using: MyEntity,
- *   if: function(obj, opts) {}
- * }
- * type: support array type
- *    number or ['number']
- *    date or ['date']
- *    string or ['string']
- *    boolean or ['boolean']
- *    any (default) or ['any']
- * act:
- *    function
- *    alias
- *    value
- * Usage:
- *    var entity = new Entity();
- *    entity.add('name');
- *    entity.add('name', { as: 'fullname' });
- *    entity.add('name', { type: 'string', as: 'fullname' });
- *    entity.add('sex', { value: 'male' });
- *    entity.add('isAdult', function(obj) { return obj && obj.age >= 18; });
- *    entity.add('activities', { using: myActivityEntity });
- *    entity.add('extraInfo', { using: myExtraInfoEntity });
- *    entity.add('condition', { if: function(obj, options) { return true } });
+ * @method Add Entity name or names with corresponding value or function for final exposure, add could be chained
+ *
+ * @param {String} arg1, ..., argN
+ * @param {Object} [] optional, options for manipulating schema object
+ *
+ * ####Options:
+ *
+ * - as: rename the property to exposure
+ * - value: set specific value for property
+ * - default: set default value for null or undefined
+ * - type: normalize property value according tytpe option, see more at https://github.com/baijijs/normalizer
+ * - if: set a filter for property return/display, accept an object and return boolean
+ * - using: use another Entity instance as the property value
+ * 
+ * ####Priority of options:
+ * if -> Function/value -> default -> using
+ *
+ * @param {Function} [] optional, for further manipulation of inputed object according to options
+ *
+ * ####Example:
+ *
+ *     var entity = new Entity();
+ *     entity.add('name');
+ *     entity.add('name', { as: 'fullname' });
+ *     entity.add('name', { type: 'string', as: 'fullname' });
+ *     entity.add('sex', { value: 'male' });
+ *     entity.add('isAdult', function(obj) { return obj && obj.age >= 18; });
+ *     entity.add('activities', { using: myActivityEntity });
+ *     entity.add('extraInfo', { using: myExtraInfoEntity });
+ *     entity.add('condition', { if: function(obj, options) { return true } });
+ *
+ * @return {Entity}
+ *
+ * @api public
  */
 Entity.prototype.add = function() {
   var fields = Array.prototype.slice.call(arguments);
@@ -107,9 +146,9 @@ Entity.prototype.add = function() {
   }
 
   fields.forEach(function(field) {
-    var value = null;
+    var act ='alias';
+    var value = field;
     var defaultVal = null;
-    var act = null;
     var type = null;
     var using = null;
     var ifFn = null;
@@ -142,8 +181,6 @@ Entity.prototype.add = function() {
     }
 
     if (options.as) {
-      act = 'alias';
-      value = field;
       field = options.as;
     } else if (options.value) {
       act = 'value';
@@ -151,9 +188,6 @@ Entity.prototype.add = function() {
     } else if (fn) {
       act = 'function';
       value = fn;
-    } else {
-      act ='alias';
-      value = field;
     }
 
     self._mappings[field] = {
@@ -167,17 +201,27 @@ Entity.prototype.add = function() {
   });
 
   self._keys = Object.keys(self._mappings);
+  return self;
 };
 
 /**
- * Entity.prototype.add alias
+ * @method An alias for add method
  */
 Entity.prototype.expose = Entity.prototype.add;
 
 /**
- * parse a obj object with mappings
- * @param {Object} obj: obj object values
- * @param {Function} converter: value converter, which can accept one parameter
+ * @method Parse input object according to Entity exposure definition
+ * @param {Object} obj
+ * @param {Object} [options] optional
+ *
+ * ####Options:
+ *
+ * - overwrite: for property with value of null or undefined, if default value is provided from Entity definition, then set this property value of input object with default value
+ *
+ * @param {Function} [converter] accept property value and options, return computed value
+ * @return {Object} return computed key value pairs
+ *
+ * @api public
  */
 Entity.prototype.parse = function(obj, options, converter) {
   debug('parsing %j with options %j and converter', obj, options);
@@ -235,6 +279,9 @@ Entity.prototype.parse = function(obj, options, converter) {
         // if value is `null`, `undefined`, set default value
         if (util.isNullOrUndefined(val)) {
           val = o.default;
+          if (options.overwrite) {
+            obj[key] = val;
+          }
           isDefaultValueApplied = true;
         }
 

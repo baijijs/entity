@@ -42,8 +42,8 @@ field name is constructed by characters of a-zA-Z0-9 and _
 
 valid options described as below:
   as => set an alias name for field to expose
-  type => set validation type for exposed field
-  value => set expose value for exposed field
+  type => normalize field according type option
+  value => set specific value for field
   default => set default value for exposed field
   if => set a filter for exposed field
   using => set another Entity object as sub-entity
