@@ -234,6 +234,27 @@ describe('Entity', function() {
     });
   });
 
+  describe('#unexpose()', function() {
+    it('should hide fields from exposure', function() {
+      var entity = new Entity({
+        name: true,
+        age: { default: 18 },
+        gender: { default: 'male' }
+      });
+
+      var obj1 = entity.parse({ name: 'Felix Liu' });
+      expect(obj1).to.have.property('name', 'Felix Liu');
+      expect(obj1).to.have.property('age', 18);
+      expect(obj1).to.have.property('gender', 'male');
+
+      entity.unexpose('age');
+      var obj2 = entity.parse({ name: 'Felix Liu' });
+      expect(obj2).to.have.property('name', 'Felix Liu');
+      expect(obj2).to.not.have.property('age');
+      expect(obj2).to.have.property('gender', 'male');
+    })
+  });
+
   describe('#parse(input, options, converter)', function() {
     var UserEntity, SocialEntity;
 
@@ -356,5 +377,23 @@ describe('Entity', function() {
       expect(result).to.have.property('hasGirlfriend', true);
     });
   });
+
+  describe('#extend()', function() {
+    it('should inherit fields and associated content from specific Entity object', function() {
+      var entity = new Entity({
+        name: true
+      });
+      var obj1 = entity.parse({ name: 'Felix Liu' });
+      expect(obj1).to.have.property('name', 'Felix Liu');
+
+      var inheritedEntity = Entity.extend(entity)
+        .add('age', { default: 18 });
+
+      var obj2 = inheritedEntity.parse({ name: 'Felix Liu' })
+      expect(obj2).to.have.property('name', 'Felix Liu');
+      expect(obj2).to.have.property('age', 18);
+      expect(obj1).to.not.have.property('age');
+    })
+  })
 
 });

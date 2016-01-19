@@ -60,6 +60,22 @@ function Entity(object) {
 }
 
 /**
+ * @method Extend a new Entity object based on provided one
+ * @param {Entity} entity
+ * @return {Entity} return a new Entity object
+ *
+ * @api public
+ */
+Entity.extend = function(entity) {
+  assert(Entity.isEntity(entity), 'entity must be a valid Entity object');
+
+  var newEntity = new Entity();
+  newEntity._mappings = Object.assign({}, entity._mappings);
+  newEntity._keys = entity._keys.slice();
+  return newEntity;
+};
+
+/**
  * @method Check whether an object is an Entity instance
  * @param {Entity} entity
  * @return {Boolean}
@@ -208,6 +224,24 @@ Entity.prototype.add = function() {
  * @method An alias for add method
  */
 Entity.prototype.expose = Entity.prototype.add;
+
+/**
+ * @method Unexpose certain property, used for extended entity
+ * @param {String} arg1, ..., argN invalid arguments are ignored silently
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.prototype.unexpose = function() {
+  var fields = Array.prototype.slice.call(arguments);
+  fields.forEach(function(field, key) {
+    if (typeof field === 'string') {
+      delete this._mappings[field];
+    }
+  }, this);
+  this._keys = Object.keys(this._mappings);
+  return this;
+};
 
 /**
  * @method Parse input object according to Entity exposure definition
