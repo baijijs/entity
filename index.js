@@ -26,7 +26,7 @@ function _validateValue(val) {
 }
 
 /**
- * @class Entity constructor for mapping schema object with pre-defined object value for final return
+ * @class Entity constructor for mapping schema object value with pre-defined object value for final return
  * @param {Object} object
  * @return {Entity}
  *
@@ -60,9 +60,9 @@ function Entity(object) {
 }
 
 /**
- * @method Extend a new Entity object based on provided one
+ * @method Create a new Entity object based on provided one
  * @param {Entity} entity
- * @return {Entity} return a new Entity object
+ * @return {Entity}
  *
  * @api public
  */
@@ -98,20 +98,20 @@ Entity.prototype.isEntity = function(entity) {
 };
 
 /**
- * @method Add Entity name or names with corresponding value or function for final exposure, add could be chained
+ * @method Add fields with corresponding value or function for final exposure, method could be chained
  *
  * @param {String} arg1, ..., argN
  * @param {Object} [] optional, options for manipulating schema object
  *
  * ####Options:
  *
- * - as: rename the property to exposure
- * - value: set specific value for property
- * - default: set default value for null or undefined
- * - type: normalize property value according tytpe option, see more at https://github.com/baijijs/normalizer
- * - if: set a filter for property return/display, accept an object and return boolean
- * - using: use another Entity instance as the property value
- * 
+ * - as: rename the field to exposure
+ * - value: set specific value for field
+ * - default: set default value for undefined field
+ * - type: normalize field value according to type option, see more at https://github.com/baijijs/normalizer
+ * - if: set a filter to determine if the field should be return, accept an object and return boolean
+ * - using: use another Entity instance as the filed value
+ *
  * ####Priority of options:
  * if -> Function/value -> default -> using
  *
@@ -123,6 +123,7 @@ Entity.prototype.isEntity = function(entity) {
  *     entity.add('name');
  *     entity.add('name', { as: 'fullname' });
  *     entity.add('name', { type: 'string', as: 'fullname' });
+ *     entity.add('age', { default: 0 });
  *     entity.add('sex', { value: 'male' });
  *     entity.add('isAdult', function(obj) { return obj && obj.age >= 18; });
  *     entity.add('activities', { using: myActivityEntity });
@@ -157,7 +158,7 @@ Entity.prototype.add = function() {
 
     if (fields.length > 1) {
       assert(!options.as, 'using :as option on multi-fields exposure not allowed');
-      assert(!fn, 'using function on multi-attribute exposure not allowed');
+      assert(!fn, 'using function on multi-fields exposure not allowed');
     }
   }
 
@@ -180,7 +181,7 @@ Entity.prototype.add = function() {
       type = options.type || 'any';
     }
 
-    defaultVal = options.default || null;
+    defaultVal = options.hasOwnProperty('default') ? options.default : null;
 
     if (options.if) {
       assert(util.isFunction(options.if), 'if condition must be a function');
@@ -193,7 +194,7 @@ Entity.prototype.add = function() {
     }
 
     if (options.as) {
-      assert(util.isString(options.as), 'as must be a String');
+      assert(util.isString(options.as), 'as must be a string');
     }
 
     if (options.as) {
@@ -226,7 +227,7 @@ Entity.prototype.add = function() {
 Entity.prototype.expose = Entity.prototype.add;
 
 /**
- * @method Unexpose certain property, used for extended entity
+ * @method Unexpose certain field, used for extended entity
  * @param {String} arg1, ..., argN invalid arguments are ignored silently
  * @return {Entity}
  *
@@ -250,9 +251,9 @@ Entity.prototype.unexpose = function() {
  *
  * ####Options:
  *
- * - overwrite: for property with value of null or undefined, if default value is provided from Entity definition, then set this property value of input object with default value
+ * - overwrite: for fields with value of undefined, if default value is provided from Entity definition, then set this field value of input object with default value
  *
- * @param {Function} [converter] accept property value and options, return computed value
+ * @param {Function} [converter] accept field value and options, return computed value
  * @return {Object} return computed key value pairs
  *
  * @api public
@@ -274,14 +275,14 @@ Entity.prototype.parse = function(obj, options, converter) {
   }
 
   if (Array.isArray(originalObj)) {
-    // if obj is an Array, then loop it
+    // When obj is an Array, loop through it
     result = originalObj.map(function(obj) {
       return self.parse(obj, options, converter);
     });
     return result;
   } else {
     if (self._keys.length === 0) {
-      // if no exposes, return
+      // Just return when no exposure
       return result;
     } else {
       self._keys.forEach(function(key) {
@@ -327,7 +328,7 @@ Entity.prototype.parse = function(obj, options, converter) {
           val = o.using.parse(val, options, converter);
         }
 
-        // cast type according to predefined dynamic converters
+        // Normalize field value with Normalizer
         try {
           val = Normalizer.convert(val, o.type, options);
         } catch (err) {

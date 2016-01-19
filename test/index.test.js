@@ -1,12 +1,11 @@
-var chai = require('chai');
 var util = require('util');
+var chai = require('chai');
+var expect = chai.expect;
 
 var Entity = require('../');
 
-var expect = chai.expect;
 
 describe('Entity', function() {
-
   var SomeEntity, SomeOtherEntity;
 
   beforeEach(function() {
@@ -15,9 +14,8 @@ describe('Entity', function() {
   });
 
   describe('#constructor', function() {
-
     it('should be able to add fields via initialization', function() {
-      var newEntity = new Entity({
+      var entity = new Entity({
         name: true,
         sex: { as: 'gender' },
         age: { default: 16 },
@@ -26,9 +24,9 @@ describe('Entity', function() {
         social: [{ using: SomeEntity }, function(obj, options) { return {}; }]
       });
 
-      var obj1 = newEntity.parse({ name: 'Felix Liu', sex: 'male', age: 20, skype: 'mySkype' });
-      var obj2 = newEntity.parse({ name: 'Felix Liu', sex: 'male' });
-      var obj3 = newEntity.parse({ name: 'Felix Liu', sex: 'male' }, { overwrite: true });
+      var obj1 = entity.parse({ name: 'Felix Liu', sex: 'male', age: 20, skype: 'mySkype' });
+      var obj2 = entity.parse({ name: 'Felix Liu', sex: 'male' });
+      var obj3 = entity.parse({ name: 'Felix Liu', sex: 'male' }, { overwrite: true });
 
       expect(obj1).to.have.property('name', 'Felix Liu');
       expect(obj1).to.have.property('gender', 'male');
@@ -44,14 +42,14 @@ describe('Entity', function() {
       expect(obj3).to.have.property('girlfriend');
     });
 
-    it('should be able to chain initialization', function() {
-      var newEntity = new Entity({
+    it('should be able to chain initialization with add method', function() {
+      var entity = new Entity({
         name: true
       })
       .add('sex', { as: 'gender' })
       .add('age', { default: 16 });
 
-      var obj = newEntity.parse({ name: 'Felix Liu', sex: 'male' });
+      var obj = entity.parse({ name: 'Felix Liu', sex: 'male' });
 
       expect(obj).to.have.property('name', 'Felix Liu');
       expect(obj).to.have.property('gender', 'male');
@@ -71,7 +69,6 @@ describe('Entity', function() {
   });
 
   describe('#isEntity(obj)', function() {
-
     it('should be true if obj is an Entity', function() {
       expect(Entity.isEntity(SomeEntity)).to.equal(true);
       expect(Entity.isEntity('whatever')).to.equal(false);
@@ -93,58 +90,57 @@ describe('Entity', function() {
   });
 
   describe('#add()', function() {
-
-    it('should add multi-attribute', function() {
-      var newEntity;
-      var fn = function(){ newEntity = SomeEntity.add('name', 'age', 'gender'); };
+    it('should add multi-fields', function() {
+      var entity;
+      var fn = function(){ entity = SomeEntity.add('name', 'age', 'gender'); };
 
       expect(fn).to.not.throw(Error);
 
-      var obj = newEntity.parse({ name: 'Felix Liu', gender: 'male', age: 20 });
+      var obj = entity.parse({ name: 'Felix Liu', gender: 'male', age: 20 });
 
       expect(obj).to.have.property('name', 'Felix Liu');
       expect(obj).to.have.property('age', 20);
       expect(obj).to.have.property('gender', 'male');
     });
 
-    it('should add multi-attribute with :default option', function() {
-      var newEntity;
-      var fn = function(){ newEntity = SomeEntity.add('name', 'age', 'gender', { default: 'default' }); };
+    it('should add multi-fields with :default option', function() {
+      var entity;
+      var fn = function(){ entity = SomeEntity.add('name', 'age', 'gender', { default: 'default' }); };
 
       expect(fn).to.not.throw(Error);
 
-      var obj = newEntity.parse({});
+      var obj = entity.parse({});
 
       expect(obj).to.have.property('name', 'default');
       expect(obj).to.have.property('age', 'default');
       expect(obj).to.have.property('gender', 'default');
     });
 
-    it('should add multi-attribute with :if option', function() {
-      var newEntity;
-      var fn = function(){ newEntity = SomeEntity.add('name', 'age', 'gender', { if: function(obj){ return obj.age > 15; } }); };
+    it('should add multi-fields with :if option', function() {
+      var entity;
+      var fn = function(){ entity = SomeEntity.add('name', 'age', 'gender', { if: function(obj){ return obj.age > 15; } }); };
 
       expect(fn).to.not.throw(Error);
 
-      var obj = newEntity.parse({ name: 'Felix Liu', gender: 'male', age: 20 });
+      var obj = entity.parse({ name: 'Felix Liu', gender: 'male', age: 20 });
 
       expect(obj).to.have.property('name');
       expect(obj).to.have.property('age', 20);
       expect(obj).to.have.property('gender');
     });
 
-    it('should add one attribute with :using option', function() {
+    it('should add one field with :using option', function() {
       var infoEntity = new Entity({
         age: true,
         sex: { default: 'male' }
       });
 
-      var newEntity = new Entity({
+      var entity = new Entity({
         name: true
       })
       .add('info', { using: infoEntity });
 
-      var obj = newEntity.parse({ name: 'Felix Liu', info: { age: 20 } });
+      var obj = entity.parse({ name: 'Felix Liu', info: { age: 20 } });
 
       expect(obj).to.have.property('name');
       expect(obj).to.have.deep.property('info.age', 20);
@@ -167,7 +163,7 @@ describe('Entity', function() {
       expect(fn).to.throw(Error);
     });
 
-    it('should add one attribute with options or function', function() {
+    it('should add one field with options or function', function() {
       SomeEntity.add('name', { using: SomeOtherEntity, as: 'fullName' });
       SomeEntity.add('age', { default: 20 }, function(obj, options) {
         return obj.age && obj.age * 2;
@@ -184,7 +180,7 @@ describe('Entity', function() {
       expect(obj).to.have.property('gender').to.be.empty;
     });
 
-    it('should throw an error if field name is not valid', function() {
+    it('should throw an error if fields name is not valid', function() {
       var fn = function() {
         var args = arguments;
         return function() {
@@ -202,7 +198,7 @@ describe('Entity', function() {
       expect(fn('name', 'value', '!fdsf)')).to.throw(Error);
     });
 
-    it('should throw an error when use function for multi-attribute', function() {
+    it('should throw an error when use function for multi-fields', function() {
       var fn = function() {
         SomeEntity.add('name', 'age', 'gender', function(obj){ return obj; });
       };
@@ -210,7 +206,7 @@ describe('Entity', function() {
       expect(fn).to.throw(Error);
     });
 
-    it('should throw an error when use :as option for multi-attribute', function() {
+    it('should throw an error when use :as option for multi-fields', function() {
       var fn = function() {
         SomeEntity.add('name', 'age', 'gender', { as: 'myName' });
       };
@@ -225,12 +221,11 @@ describe('Entity', function() {
 
       expect(fn).to.throw(Error);
     });
-
   });
 
   describe('#expose()', function() {
-    it('should have the same functionalities of #add()', function() {
-      expect(SomeEntity.expose.toString()).to.equal(SomeEntity.add.toString());
+    it('should be aliased', function() {
+      expect(Entity.prototype.expose).to.equal(Entity.prototype.add);
     });
   });
 
@@ -332,7 +327,7 @@ describe('Entity', function() {
       expect(UserEntity.parse({}, { isSignedIn: false })).to.have.property('isSignedIn', false);
     });
 
-    it('should return subfields based on used Entity', function() {
+    it('should return sub-fields specified by using Entity', function() {
       var user = { social: { qq: 66666666, skype: 'mySkype', facebook: 'myFacebook', twitter: 'myTwitter', tumblr: 'myTumblr' } };
       var user1 = { social: [{ qq: 66666666, skype: 'mySkype', facebook: 'myFacebook', twitter: 'myTwitter', tumblr: 'myTumblr' }] };
 
@@ -352,7 +347,7 @@ describe('Entity', function() {
       expect(result1).to.not.have.deep.property('social[0].tumblr');
     });
 
-    it('should convert field value based on converter', function() {
+    it('should convert fields value based on converter', function() {
       var converter = function(val, options) {
         if (val instanceof Date) {
           return util.format('%s-%s-%s', val.getUTCFullYear(), val.getUTCMonth() + 1, val.getUTCDate());
@@ -364,7 +359,7 @@ describe('Entity', function() {
       expect(UserEntity.parse({}, {}, converter)).to.have.property('birthday', '2015-10-10');
     });
 
-    it('should convert field value by it\'s type', function() {
+    it('should normalize fields value according to fields type', function() {
       var user = {
         name: 123,
         habits: [123, true, 'pingpong'],
@@ -395,5 +390,4 @@ describe('Entity', function() {
       expect(obj1).to.not.have.property('age');
     })
   })
-
 });
