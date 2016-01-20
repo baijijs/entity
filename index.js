@@ -26,6 +26,33 @@ function _validateValue(val) {
 }
 
 /**
+ * @method Add fields definition for Entity object
+ * @param {Object} object
+ * @return {undefined}
+ *
+ * @api private
+ */
+function _addFields(object) {
+  var self = this;
+  var value;
+  var propNames = Object.getOwnPropertyNames(object);
+
+  propNames.forEach(function(key) {
+    value = object[key];
+    assert(_validateValue(value), `Entity Define: object value for key ${key} is invalid, '${value}'`);
+
+    if (value === true) {
+      self.add(key);
+    } else if (Array.isArray(value)){
+      value.unshift(key);
+      self.add.apply(self, value);
+    } else {
+      self.add.apply(self, [key, value]);
+    }
+  });
+}
+
+/**
  * @class Entity constructor for mapping schema object value with pre-defined object value for final return
  * @param {Object} object
  * @return {Entity}
@@ -40,38 +67,62 @@ function Entity(object) {
 
   assert(util.isObject(object), `${object} is not a valid object`);
 
-  var value;
-  for (var key in object) {
-    if (object.hasOwnProperty(key)) {
-      value = object[key];
-      assert(_validateValue(value), `Entity Define: object value for key ${key} is invalid, '${value}'`);
-
-      if (value === true) {
-        this.add(key);
-      } else if (Array.isArray(value)){
-        value.unshift(key);
-        this.add.apply(this, value);
-      } else {
-        this.add.apply(this, [key, value]);
-      }
-    }
-  }
+  _addFields.call(this, object);
   return this;
 }
 
 /**
- * @method Create a new Entity object based on provided one
+ * @method Clone Entity object
  * @param {Entity} entity
  * @return {Entity}
- *
- * @api public
+ * 
+ * @api private
  */
-Entity.extend = function(entity) {
+function _cloneEntity(entity) {
   assert(Entity.isEntity(entity), 'entity must be a valid Entity object');
 
   var newEntity = new Entity();
   newEntity._mappings = Object.assign({}, entity._mappings);
   newEntity._keys = entity._keys.slice();
+
+  return newEntity;
+}
+
+/**
+ * @method Clone provided Entity object
+ * @param {Entity} entity
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.clone = function(entity) {
+  return _cloneEntity(entity);
+}
+
+/**
+ * @method An alias for clone method
+ * @param {Entity} entity
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.copy = Entity.clone;
+
+/**
+ * @method Extend a new Entity object based on provided one and object
+ * @param {Entity} entity
+ * @param {Object} object, when object is not a valid Object instance, then fail silently
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.extend = function(entity, object) {
+  var newEntity = _cloneEntity(entity);
+
+  if (util.isObject(object)) {
+    _addFields.call(newEntity, object);
+  }
+
   return newEntity;
 };
 
@@ -223,6 +274,40 @@ Entity.prototype.add = function() {
 
 /**
  * @method An alias for add method
+ *
+ * @param {String} arg1, ..., argN
+ * @param {Object} [] optional, options for manipulating schema object
+ *
+ * ####Options:
+ *
+ * - as: rename the field to exposure
+ * - value: set specific value for field
+ * - default: set default value for undefined field
+ * - type: normalize field value according to type option, see more at https://github.com/baijijs/normalizer
+ * - if: set a filter to determine if the field should be return, accept an object and return boolean
+ * - using: use another Entity instance as the filed value
+ *
+ * ####Priority of options:
+ * if -> Function/value -> default -> using
+ *
+ * @param {Function} [] optional, for further manipulation of inputed object according to options
+ *
+ * ####Example:
+ *
+ *     var entity = new Entity();
+ *     entity.expose('name');
+ *     entity.expose('name', { as: 'fullname' });
+ *     entity.expose('name', { type: 'string', as: 'fullname' });
+ *     entity.expose('age', { default: 0 });
+ *     entity.expose('sex', { value: 'male' });
+ *     entity.expose('isAdult', function(obj) { return obj && obj.age >= 18; });
+ *     entity.expose('activities', { using: myActivityEntity });
+ *     entity.expose('extraInfo', { using: myExtraInfoEntity });
+ *     entity.expose('condition', { if: function(obj, options) { return true } });
+ *
+ * @return {Entity}
+ *
+ * @api public
  */
 Entity.prototype.expose = Entity.prototype.add;
 

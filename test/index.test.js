@@ -373,21 +373,48 @@ describe('Entity', function() {
     });
   });
 
-  describe('#extend()', function() {
-    it('should inherit fields and associated content from specific Entity object', function() {
+  describe('#clone()', function() {
+    it('should clone provided Entity object', function() {
       var entity = new Entity({
         name: true
       });
       var obj1 = entity.parse({ name: 'Felix Liu' });
       expect(obj1).to.have.property('name', 'Felix Liu');
 
-      var inheritedEntity = Entity.extend(entity)
+      var inheritedEntity = Entity.clone(entity)
         .add('age', { default: 18 });
 
       var obj2 = inheritedEntity.parse({ name: 'Felix Liu' })
       expect(obj2).to.have.property('name', 'Felix Liu');
       expect(obj2).to.have.property('age', 18);
       expect(obj1).to.not.have.property('age');
+
+    });
+  });
+
+  describe('#copy()', function() {
+    it('should be aliased', function() {
+      expect(Entity.copy).to.equal(Entity.clone);
+    });
+  });
+
+  describe('#extend()', function() {
+    it('should create a new Entity object based on provided one and object', function() {
+      var entity = new Entity({
+        name: true
+      });
+      var obj1 = entity.parse({ name: 'Felix Liu' });
+      expect(obj1).to.have.property('name', 'Felix Liu');
+
+      var inheritedEntity = Entity.extend(entity, { age: { default: 18 } })
+        .add('gender', { default: 'male' });
+
+      var obj2 = inheritedEntity.parse({ name: 'Felix Liu' })
+      expect(obj2).to.have.property('name', 'Felix Liu');
+      expect(obj2).to.have.property('age', 18);
+      expect(obj2).to.have.property('gender', 'male');
+      expect(obj1).to.not.have.property('age');
+      expect(obj1).to.not.have.property('male');
     })
   })
 });
