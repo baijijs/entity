@@ -147,22 +147,6 @@ describe('Entity', function() {
       expect(obj).to.have.deep.property('info.sex', 'male');
     });
 
-    it('should throw an error when use :value option with function', function() {
-      var fn = function() {
-        SomeEntity.add('name', { value: 'myName' }, function(obj) { return obj; });
-      };
-
-      expect(fn).to.throw(Error);
-    });
-
-    it('should throw an error when use :value option with :as option', function() {
-      var fn = function() {
-        SomeEntity.add('name', { value: 'myName', as: 'myName' });
-      };
-
-      expect(fn).to.throw(Error);
-    });
-
     it('should add one field with options or function', function() {
       SomeEntity.add('name', { using: SomeOtherEntity, as: 'fullName' });
       SomeEntity.add('age', { default: 20 }, function(obj, options) {
@@ -178,6 +162,40 @@ describe('Entity', function() {
       expect(obj).to.have.property('fullName').to.be.empty;
       expect(obj).to.have.property('age', 30);
       expect(obj).to.have.property('gender').to.be.empty;
+    });
+
+    it('should format date according to format option', function() {
+      SomeEntity
+        .add('name')
+        .add('borned', { format: 'iso' });
+
+      var obj = SomeEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) })
+      expect(obj).to.have.property('name', 'Felix Liu');
+      expect(obj).to.have.property('borned', new Date(1990, 0, 1).toISOString());
+
+      SomeOtherEntity
+        .add('name')
+        .add('borned', { format: 'timestamp' });
+
+      var obj1 = SomeOtherEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) })
+      expect(obj1).to.have.property('name', 'Felix Liu');
+      expect(obj1).to.have.property('borned', new Date(1990, 0, 1).getTime());
+    });
+
+    it('should throw an error when use :value option with function', function() {
+      var fn = function() {
+        SomeEntity.add('name', { value: 'myName' }, function(obj) { return obj; });
+      };
+
+      expect(fn).to.throw(Error);
+    });
+
+    it('should throw an error when use :value option with :as option', function() {
+      var fn = function() {
+        SomeEntity.add('name', { value: 'myName', as: 'myName' });
+      };
+
+      expect(fn).to.throw(Error);
     });
 
     it('should throw an error if fields name is not valid', function() {

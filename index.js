@@ -72,6 +72,26 @@ function Entity(object) {
 }
 
 /**
+ * @method Format date
+ * @param {Date} date
+ * @param {String} format
+ * @return {String|Number} date
+ *
+ * @api private
+ */
+_format = function(date, format) {
+  switch(format) {
+    case 'iso':
+      date = date.toISOString()
+      break;
+    case 'timestamp':
+      date = date.getTime()
+      break;
+  }
+  return date;
+}
+
+/**
  * @method Clone Entity object
  * @param {Entity} entity
  * @return {Entity}
@@ -159,7 +179,8 @@ Entity.prototype.isEntity = function(entity) {
  * - as: rename the field to exposure
  * - value: set specific value for field
  * - default: set default value for undefined field
- * - type: normalize field value according to type option, see more at https://github.com/baijijs/normalizer
+ * - type: normalize field value according to type option, case ignored, see more at https://github.com/baijijs/normalizer
+ * - format: only applied for valid Date value, which automatically turn type option to `date`, now support format of `iso` and `timestamp`, case ignored
  * - if: set a filter to determine if the field should be return, accept an object and return boolean
  * - using: use another Entity instance as the filed value
  *
@@ -218,6 +239,7 @@ Entity.prototype.add = function() {
     var value = field;
     var defaultVal = null;
     var type = null;
+    var format = null;
     var using = null;
     var ifFn = null;
 
@@ -227,12 +249,18 @@ Entity.prototype.add = function() {
     assert(!(options.value && options.as), 'using :value option with :as option not allowed');
 
     if (Array.isArray(options.type)) {
-      type = [options.type[0] || 'any'];
+      type = [String.prototype.toLowerCase.call(options.type[0] || 'any')];
     } else {
-      type = options.type || 'any';
+      type = String.prototype.toLowerCase.call(options.type || 'any');
     }
 
     defaultVal = options.hasOwnProperty('default') ? options.default : null;
+
+    if (options.format) {
+      assert(/^iso$|^timestamp$/i.test(options.format), 'format must be one of ["iso", "timestamp"] value, case ignored');
+      format = options.format.toLowerCase();
+      type = 'date';
+    }
 
     if (options.if) {
       assert(util.isFunction(options.if), 'if condition must be a function');
@@ -263,6 +291,7 @@ Entity.prototype.add = function() {
       act: act,
       value: value,
       default: defaultVal,
+      format: format,
       if: ifFn,
       using: using
     };
@@ -283,7 +312,8 @@ Entity.prototype.add = function() {
  * - as: rename the field to exposure
  * - value: set specific value for field
  * - default: set default value for undefined field
- * - type: normalize field value according to type option, see more at https://github.com/baijijs/normalizer
+ * - type: normalize field value according to type option, case ignored, see more at https://github.com/baijijs/normalizer
+ * - format: only applied for valid Date value, which automatically turn type option to `date`, now support format of `iso` and `timestamp`, case ignored
  * - if: set a filter to determine if the field should be return, accept an object and return boolean
  * - using: use another Entity instance as the filed value
  *
@@ -420,7 +450,7 @@ Entity.prototype.parse = function(obj, options, converter) {
           debug('[ERROR] -> ', err);
         }
 
-        result[key] = val;
+        result[key] = util.isDate(val) && o.format && _format(val, o.format) || val;
       });
       return result;
     }
