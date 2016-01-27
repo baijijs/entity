@@ -180,7 +180,7 @@ Entity.prototype.isEntity = function(entity) {
  * - value: set specific value for field
  * - default: set default value for undefined field
  * - type: normalize field value according to type option, case ignored, see more at https://github.com/baijijs/normalizer
- * - format: only applied for valid Date value, which automatically turn type option to `date`, now support format of `iso` and `timestamp`, case ignored
+ * - format: only applied for valid Date value, which automatically turn type option to `string`, now support format of `iso` and `timestamp`, case ignored
  * - if: set a filter to determine if the field should be return, accept an object and return boolean
  * - using: use another Entity instance as the filed value
  *
@@ -259,7 +259,7 @@ Entity.prototype.add = function() {
     if (options.format) {
       assert(/^iso$|^timestamp$/i.test(options.format), 'format must be one of ["iso", "timestamp"] value, case ignored');
       format = options.format.toLowerCase();
-      type = 'date';
+      type = 'string';
     }
 
     if (options.if) {
@@ -313,7 +313,7 @@ Entity.prototype.add = function() {
  * - value: set specific value for field
  * - default: set default value for undefined field
  * - type: normalize field value according to type option, case ignored, see more at https://github.com/baijijs/normalizer
- * - format: only applied for valid Date value, which automatically turn type option to `date`, now support format of `iso` and `timestamp`, case ignored
+ * - format: only applied for valid Date value, which automatically turn type option to `string`, now support format of `iso` and `timestamp`, case ignored
  * - if: set a filter to determine if the field should be return, accept an object and return boolean
  * - using: use another Entity instance as the filed value
  *
@@ -443,6 +443,9 @@ Entity.prototype.parse = function(obj, options, converter) {
           val = o.using.parse(val, options, converter);
         }
 
+        // apply format for valid Date object
+        val = util.isDate(val) && o.format && _format(val, o.format) || val;
+
         // Normalize field value with Normalizer
         try {
           val = Normalizer.convert(val, o.type, options);
@@ -450,7 +453,7 @@ Entity.prototype.parse = function(obj, options, converter) {
           debug('[ERROR] -> ', err);
         }
 
-        result[key] = util.isDate(val) && o.format && _format(val, o.format) || val;
+        result[key] = val;
       });
       return result;
     }

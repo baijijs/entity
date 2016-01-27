@@ -179,7 +179,7 @@ describe('Entity', function() {
 
       var obj1 = SomeOtherEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) })
       expect(obj1).to.have.property('name', 'Felix Liu');
-      expect(obj1).to.have.property('borned', new Date(1990, 0, 1).getTime());
+      expect(obj1).to.have.property('borned', String(new Date(1990, 0, 1).getTime()));
     });
 
     it('should throw an error when use :value option with function', function() {
