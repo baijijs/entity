@@ -6,9 +6,9 @@ module.exports = Entity;
 /**
  * Module dependencies
  */
-var util = require('util');
 var assert = require('assert');
 var Normalizer = require('baiji-normalizer');
+var meld = require('baiji-meld');
 var debug = require('debug')('baiji:entity');
 
 /**
@@ -21,8 +21,8 @@ var debug = require('debug')('baiji:entity');
 function _validateValue(val) {
   return val === true ||
     Array.isArray(val) ||
-    util.isObject(val) ||
-    util.isFunction(val);
+    meld.isObject(val) ||
+    meld.isFunction(val);
 }
 
 /**
@@ -65,7 +65,7 @@ function Entity(object) {
 
   if (object === undefined) return;
 
-  assert(util.isObject(object), `${object} is not a valid object`);
+  assert(meld.isObject(object), `${object} is not a valid object`);
 
   _addFields.call(this, object);
   return this;
@@ -139,7 +139,7 @@ Entity.copy = Entity.clone;
 Entity.extend = function(entity, object) {
   var newEntity = _cloneEntity(entity);
 
-  if (util.isObject(object)) {
+  if (meld.isObject(object)) {
     _addFields.call(newEntity, object);
   }
 
@@ -154,7 +154,7 @@ Entity.extend = function(entity, object) {
  * @api public
  */
 Entity.isEntity = function(entity) {
-  return !!(util.isObject(entity) && util.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
+  return !!(meld.isObject(entity) && meld.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
 };
 
 /**
@@ -217,12 +217,12 @@ Entity.prototype.add = function() {
 
   if (fields.length > 1) {
     // extract `fn`
-    if (util.isFunction(fields[fields.length - 1])) {
+    if (meld.isFunction(fields[fields.length - 1])) {
       fn = Array.prototype.pop.call(fields);
     }
 
     // extract `options`
-    if (util.isObject(fields[fields.length - 1])) {
+    if (meld.isObject(fields[fields.length - 1])) {
       var last = Array.prototype.pop.call(fields);
       var names = Object.getOwnPropertyNames(last);
       Object.assign(options, last);
@@ -243,7 +243,7 @@ Entity.prototype.add = function() {
     var using = null;
     var ifFn = null;
 
-    assert(util.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
+    assert(meld.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
     assert(!(options.as && fn), 'using :as option with function not allowed');
     assert(!(options.value && fn), 'using :value option with function not allowed');
     assert(!(options.value && options.as), 'using :value option with :as option not allowed');
@@ -263,7 +263,7 @@ Entity.prototype.add = function() {
     }
 
     if (options.if) {
-      assert(util.isFunction(options.if), 'if condition must be a function');
+      assert(meld.isFunction(options.if), 'if condition must be a function');
       ifFn = options.if;
     }
 
@@ -273,7 +273,7 @@ Entity.prototype.add = function() {
     }
 
     if (options.as) {
-      assert(util.isString(options.as), 'as must be a string');
+      assert(meld.isString(options.as), 'as must be a string');
     }
 
     if (options.as) {
@@ -379,13 +379,13 @@ Entity.prototype.parse = function(obj, options, converter) {
   var result = {};
   var self = this;
 
-  originalObj = util.isNullOrUndefined(obj) ? {} : obj;
+  originalObj = meld.isNil(obj) ? {} : obj;
 
-  if (util.isFunction(options)) {
+  if (meld.isFunction(options)) {
     converter = options;
   }
 
-  if (!util.isObject(options)) {
+  if (!meld.isObject(options)) {
     options = {};
   }
 
@@ -427,7 +427,7 @@ Entity.prototype.parse = function(obj, options, converter) {
 
         var isDefaultValueApplied = false;
         // if value is `null`, `undefined`, set default value
-        if (util.isNullOrUndefined(val)) {
+        if (meld.isNil(val)) {
           val = o.default;
           if (options.overwrite) {
             obj[key] = val;
@@ -435,7 +435,7 @@ Entity.prototype.parse = function(obj, options, converter) {
           isDefaultValueApplied = true;
         }
 
-        if (converter && util.isFunction(converter)) {
+        if (converter && meld.isFunction(converter)) {
           val = converter(val, options);
         }
 
@@ -444,7 +444,7 @@ Entity.prototype.parse = function(obj, options, converter) {
         }
 
         // apply format for valid Date object
-        val = util.isDate(val) && o.format && _format(val, o.format) || val;
+        val = meld.isDate(val) && o.format && _format(val, o.format) || val;
 
         // Normalize field value with Normalizer
         try {
