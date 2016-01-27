@@ -1,7 +1,7 @@
 {
   "name": "baiji-entity",
   "version": "1.0.0",
-  "description": "Baiji Entity",
+  "description": "Expose API fields for endpoint user",
   "main": "index.js",
   "scripts": {
     "test": "mocha"
@@ -12,7 +12,8 @@
   },
   "keywords": [
     "baiji",
-    "entity"
+    "entity",
+    "api"
   ],
   "author": "lyfeyaj",
   "license": "MIT",

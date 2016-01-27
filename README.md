@@ -1,6 +1,10 @@
 Baiji Entity
 ============
 
+[![Build Status](https://travis-ci.org/baijijs/entity.svg)](https://travis-ci.org/baijijs/entity)
+
+Lead Maintainer: [Nick Jiang](https://github.com/nick-jiang)
+
 Expose API fields for endpoint user
 
 # Usage
@@ -17,21 +21,21 @@ npm install baiji-entity
 Define a new Entity object with object
 
 The object key and value pairs is the same as field and options pairs from .add method
-```
+``` javascript
 var newEntity = new Entity({
   name: true,
   sex: { as: 'gender' },
   age: { default: 18 },
   isAdult: function(obj) { return obj.age >= 18 ? true : false; },
   girlfriend: { default: true, if: function(obj) { return obj.age >= 16 ? true : false; } },
-  social: [{ using: SomeEntity }, function(obj, options) { return {}; }]
+  social: { using: SomeEntity }, function(obj, options) { return {}; }
 });
 ```
 
 #### .isEntity(entity)
 Check if entity is an instance of Entity object
 
-```
+``` javascript
 Entity.isEntity(newEntity);
 ```
 
@@ -48,9 +52,9 @@ valid options described as below:
   if => set a filter for exposed field
   using => set another Entity object as sub-entity
 
-fn is used to computing final exposed field value
+`fn` is used to computing final exposed field value
 
-```javascript
+``` javascript
 var entity = new Entity();
 entity.add('name');
 entity.add('name', { as: 'fullname' });
@@ -63,7 +67,7 @@ entity.add('condition', { if: function(obj, options) { return true } });
 ```
 
 #### .expose
-An alias for .add method
+An alias method for .add
 
 #### .parse(object[, options, converter])
 Parse an input object with pre-defined Entity
