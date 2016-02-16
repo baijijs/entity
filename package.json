@@ -1,6 +1,6 @@
 {
   "name": "baiji-entity",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Expose API fields for endpoint user",
   "main": "index.js",
   "scripts": {
@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/baijijs/entity#readme",
   "dependencies": {
+    "baiji-meld": "^1.0.2",
     "baiji-normalizer": "^1.0.0",
     "debug": "^2.2.0"
   },

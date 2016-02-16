@@ -6,9 +6,9 @@ module.exports = Entity;
 /**
  * Module dependencies.
  */
-var util = require('util');
 var assert = require('assert');
 var Normalizer = require('baiji-normalizer');
+var meld = require('baiji-meld');
 var debug = require('debug')('baiji:entity');
 
 /**
@@ -17,32 +17,31 @@ var debug = require('debug')('baiji:entity');
 function Entity(object) {
   this._mappings = {};
   this._keys = [];
+  var self = this;
 
   if (object === undefined) return;
 
-  assert(util.isObject(object), `${object} is not a valid object`);
+  assert(meld.isObject(object), `${object} is not a valid object`);
 
   var value;
-  for (var key in object) {
-    if (object.hasOwnProperty(key)) {
-      value = object[key];
-      if (value === true) {
-        this.add(key);
-      } else if (Array.isArray(value)){
-        value.unshift(key);
-        this.add.apply(this, value);
-      } else {
-        this.add.apply(this, [key, value]);
-      }
+  meld.each(object, function(value, key) {
+    value = object[key];
+    if (value === true) {
+      self.add(key);
+    } else if (meld.isArray(value)){
+      value.unshift(key);
+      self.add.apply(self, value);
+    } else {
+      self.add.apply(self, [key, value]);
     }
-  }
+  });
 }
 
 /**
  * check whether an object is an Entity instance
  */
 Entity.isEntity = function(entity) {
-  return !!(entity && util.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
+  return !!(entity && meld.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
 };
 
 Entity.prototype.isEntity = function(entity) {
@@ -89,12 +88,12 @@ Entity.prototype.add = function() {
 
   if (fields.length > 1) {
     // extract `fn`
-    if (util.isFunction(fields[fields.length - 1])) {
+    if (meld.isFunction(fields[fields.length - 1])) {
       fn = Array.prototype.pop.call(fields);
     }
 
     // extract `options`
-    if (util.isObject(fields[fields.length - 1])) {
+    if (meld.isObject(fields[fields.length - 1])) {
       var last = Array.prototype.pop.call(fields);
       var names = Object.getOwnPropertyNames(last);
       Object.assign(options, last);
@@ -106,7 +105,7 @@ Entity.prototype.add = function() {
     }
   }
 
-  fields.forEach(function(field) {
+  meld.each(fields, function(field) {
     var value = null;
     var defaultVal = null;
     var act = null;
@@ -114,12 +113,12 @@ Entity.prototype.add = function() {
     var using = null;
     var ifFn = null;
 
-    assert(util.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
+    assert(meld.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
     assert(!(options.as && fn), 'using :as option with function not allowed');
     assert(!(options.value && fn), 'using :value option with function not allowed');
     assert(!(options.value && options.as), 'using :value option with :as option not allowed');
 
-    if (Array.isArray(options.type)) {
+    if (meld.isArray(options.type)) {
       type = [options.type[0] || 'any'];
     } else {
       type = options.type || 'any';
@@ -128,7 +127,7 @@ Entity.prototype.add = function() {
     defaultVal = options.default || null;
 
     if (options.if) {
-      assert(util.isFunction(options.if), 'if condition must be a function');
+      assert(meld.isFunction(options.if), 'if condition must be a function');
       ifFn = options.if;
     }
 
@@ -138,7 +137,7 @@ Entity.prototype.add = function() {
     }
 
     if (options.as) {
-      assert(util.isString(options.as), 'as must be a String');
+      assert(meld.isString(options.as), 'as must be a String');
     }
 
     if (options.as) {
@@ -181,21 +180,22 @@ Entity.prototype.expose = Entity.prototype.add;
  */
 Entity.prototype.parse = function(obj, options, converter) {
   debug('parsing %j with options %j and converter', obj, options);
+
   var originalObj;
   var result = {};
   var self = this;
 
-  originalObj = util.isNullOrUndefined(obj) ? {} : obj;
+  originalObj = meld.isNullOrUndefined(obj) ? {} : obj;
 
-  if (util.isFunction(options)) {
+  if (meld.isFunction(options)) {
     converter = options;
   }
 
-  if (!util.isObject(options)) {
+  if (!meld.isObject(options)) {
     options = {};
   }
 
-  if (Array.isArray(originalObj)) {
+  if (meld.isArray(originalObj)) {
     // if obj is an Array, then loop it
     result = originalObj.map(function(obj) {
       return self.parse(obj, options, converter);
@@ -206,7 +206,7 @@ Entity.prototype.parse = function(obj, options, converter) {
       // if no exposes, return
       return result;
     } else {
-      self._keys.forEach(function(key) {
+      meld.each(self._keys, function(key) {
         var o = self._mappings[key];
         var val = null;
 
@@ -233,12 +233,12 @@ Entity.prototype.parse = function(obj, options, converter) {
 
         var isDefaultValueApplied = false;
         // if value is `null`, `undefined`, set default value
-        if (util.isNullOrUndefined(val)) {
+        if (meld.isNullOrUndefined(val)) {
           val = o.default;
           isDefaultValueApplied = true;
         }
 
-        if (converter && util.isFunction(converter)) {
+        if (converter && meld.isFunction(converter)) {
           val = converter(val, options);
         }
 
@@ -255,6 +255,7 @@ Entity.prototype.parse = function(obj, options, converter) {
 
         result[key] = val;
       });
+
       return result;
     }
   }
