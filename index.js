@@ -6,9 +6,9 @@ module.exports = Entity;
 /**
  * Module dependencies
  */
-var assert = require('assert');
 var Normalizer = require('baiji-normalizer');
-var meld = require('baiji-meld');
+var bue = require('bue');
+var assert = bue.assert;
 var debug = require('debug')('baiji:entity');
 
 /**
@@ -21,8 +21,8 @@ var debug = require('debug')('baiji:entity');
 function _validateValue(val) {
   return val === true ||
     Array.isArray(val) ||
-    meld.isObject(val) ||
-    meld.isFunction(val);
+    bue.isObject(val) ||
+    bue.isFunction(val);
 }
 
 /**
@@ -65,7 +65,7 @@ function Entity(object) {
 
   if (object === undefined) return;
 
-  assert(meld.isObject(object), `${object} is not a valid object`);
+  assert(bue.isObject(object), `${object} is not a valid object`);
 
   _addFields.call(this, object);
   return this;
@@ -79,30 +79,30 @@ function Entity(object) {
  *
  * @api private
  */
-_format = function(date, format) {
+var _format = function(date, format) {
   switch(format) {
     case 'iso':
-      date = date.toISOString()
+      date = date.toISOString();
       break;
     case 'timestamp':
-      date = date.getTime()
+      date = date.getTime();
       break;
   }
   return date;
-}
+};
 
 /**
  * @method Clone Entity object
  * @param {Entity} entity
  * @return {Entity}
- * 
+ *
  * @api private
  */
 function _cloneEntity(entity) {
   assert(Entity.isEntity(entity), 'entity must be a valid Entity object');
 
   var newEntity = new Entity();
-  newEntity._mappings = Object.assign({}, entity._mappings);
+  newEntity._mappings = bue.extend({}, entity._mappings);
   newEntity._keys = entity._keys.slice();
 
   return newEntity;
@@ -117,7 +117,7 @@ function _cloneEntity(entity) {
  */
 Entity.clone = function(entity) {
   return _cloneEntity(entity);
-}
+};
 
 /**
  * @method An alias for clone method
@@ -139,7 +139,7 @@ Entity.copy = Entity.clone;
 Entity.extend = function(entity, object) {
   var newEntity = _cloneEntity(entity);
 
-  if (meld.isObject(object)) {
+  if (bue.isObject(object)) {
     _addFields.call(newEntity, object);
   }
 
@@ -154,7 +154,7 @@ Entity.extend = function(entity, object) {
  * @api public
  */
 Entity.isEntity = function(entity) {
-  return !!(meld.isObject(entity) && meld.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
+  return !!(bue.isObject(entity) && bue.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
 };
 
 /**
@@ -164,7 +164,7 @@ Entity.isEntity = function(entity) {
  *
  * @api public
  */
-Entity.prototype.isEntity = function(entity) {
+Entity.prototype.isEntity = function() {
   return this instanceof Entity;
 };
 
@@ -217,14 +217,13 @@ Entity.prototype.add = function() {
 
   if (fields.length > 1) {
     // extract `fn`
-    if (meld.isFunction(fields[fields.length - 1])) {
+    if (bue.isFunction(fields[fields.length - 1])) {
       fn = Array.prototype.pop.call(fields);
     }
 
     // extract `options`
-    if (meld.isObject(fields[fields.length - 1])) {
+    if (bue.isObject(fields[fields.length - 1])) {
       var last = Array.prototype.pop.call(fields);
-      var names = Object.getOwnPropertyNames(last);
       Object.assign(options, last);
     }
 
@@ -234,7 +233,7 @@ Entity.prototype.add = function() {
     }
   }
 
-  fields.forEach(function(field) {
+  bue.each(fields, function(field) {
     var act ='alias';
     var value = field;
     var defaultVal = null;
@@ -243,7 +242,7 @@ Entity.prototype.add = function() {
     var using = null;
     var ifFn = null;
 
-    assert(meld.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
+    assert(bue.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
     assert(!(options.as && fn), 'using :as option with function not allowed');
     assert(!(options.value && fn), 'using :value option with function not allowed');
     assert(!(options.value && options.as), 'using :value option with :as option not allowed');
@@ -263,7 +262,7 @@ Entity.prototype.add = function() {
     }
 
     if (options.if) {
-      assert(meld.isFunction(options.if), 'if condition must be a function');
+      assert(bue.isFunction(options.if), 'if condition must be a function');
       ifFn = options.if;
     }
 
@@ -273,7 +272,7 @@ Entity.prototype.add = function() {
     }
 
     if (options.as) {
-      assert(meld.isString(options.as), 'as must be a string');
+      assert(bue.isString(options.as), 'as must be a string');
     }
 
     if (options.as) {
@@ -299,6 +298,15 @@ Entity.prototype.add = function() {
 
   self._keys = Object.keys(self._mappings);
   return self;
+};
+
+/**
+ * add function but safe
+ */
+Entity.prototype.safeAdd = function() {
+  var entity = _cloneEntity(this);
+
+  return entity.add.apply(entity, arguments);
 };
 
 /**
@@ -348,16 +356,30 @@ Entity.prototype.expose = Entity.prototype.add;
  *
  * @api public
  */
-Entity.prototype.unexpose = function() {
+Entity.prototype.remove = function() {
   var fields = Array.prototype.slice.call(arguments);
-  fields.forEach(function(field, key) {
+  var self = this;
+
+  bue.each(fields, function(field) {
     if (typeof field === 'string') {
-      delete this._mappings[field];
+      delete self._mappings[field];
     }
-  }, this);
+  });
+
   this._keys = Object.keys(this._mappings);
-  return this;
+
+  return self;
 };
+
+/**
+ * Entity.prototype.remove alias
+ */
+Entity.prototype.unexpose = Entity.prototype.remove;
+
+/**
+ * Entity.prototype.safeAdd alias
+ */
+Entity.prototype.safeExpose = Entity.prototype.safeAdd;
 
 /**
  * @method Parse input object according to Entity exposure definition
@@ -379,13 +401,13 @@ Entity.prototype.parse = function(obj, options, converter) {
   var result = {};
   var self = this;
 
-  originalObj = meld.isNil(obj) ? {} : obj;
+  originalObj = bue.isNullOrUndefined(obj) ? {} : obj;
 
-  if (meld.isFunction(options)) {
+  if (bue.isFunction(options)) {
     converter = options;
   }
 
-  if (!meld.isObject(options)) {
+  if (!bue.isObject(options)) {
     options = {};
   }
 
@@ -427,7 +449,7 @@ Entity.prototype.parse = function(obj, options, converter) {
 
         var isDefaultValueApplied = false;
         // if value is `null`, `undefined`, set default value
-        if (meld.isNil(val)) {
+        if (bue.isNullOrUndefined(val)) {
           val = o.default;
           if (options.overwrite) {
             obj[key] = val;
@@ -435,7 +457,7 @@ Entity.prototype.parse = function(obj, options, converter) {
           isDefaultValueApplied = true;
         }
 
-        if (converter && meld.isFunction(converter)) {
+        if (converter && bue.isFunction(converter)) {
           val = converter(val, options);
         }
 
@@ -444,7 +466,7 @@ Entity.prototype.parse = function(obj, options, converter) {
         }
 
         // apply format for valid Date object
-        val = meld.isDate(val) && o.format && _format(val, o.format) || val;
+        val = bue.isDate(val) && o.format && _format(val, o.format) || val;
 
         // Normalize field value with Normalizer
         try {

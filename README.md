@@ -94,8 +94,14 @@ entity.add('extraInfo', { using: myExtraInfoEntity });
 entity.add('condition', { if: function(obj, options) { return true } });
 ```
 
+#### .prototype.safeAdd(field1[, field2, ..., fieldn, options, fn])
+Same as .add function, return a new entity instead of modifying itself
+
 #### .prototype.expose
 An alias method for .add
+
+#### .prototype.safeExpose
+An alias method for .safeAdd
 
 #### .prototype.unexpose
 Unexpose certain field, used for extended entity

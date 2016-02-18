@@ -21,7 +21,7 @@ describe('Entity', function() {
         age: { default: 16 },
         isAdult: function(obj) { return obj.age >= 18 ? true : false; },
         girlfriend: { default: true, if: function(obj) { return obj.age >= 16 ? true : false; } },
-        social: [{ using: SomeEntity }, function(obj, options) { return {}; }]
+        social: [{ using: SomeEntity }, function() { return {}; }]
       });
 
       var obj1 = entity.parse({ name: 'Felix Liu', sex: 'male', age: 20, skype: 'mySkype' });
@@ -149,10 +149,10 @@ describe('Entity', function() {
 
     it('should add one field with options or function', function() {
       SomeEntity.add('name', { using: SomeOtherEntity, as: 'fullName' });
-      SomeEntity.add('age', { default: 20 }, function(obj, options) {
+      SomeEntity.add('age', { default: 20 }, function(obj) {
         return obj.age && obj.age * 2;
       });
-      SomeEntity.add('gender', { default: 20, using: SomeOtherEntity }, function(obj, options) {
+      SomeEntity.add('gender', { default: 20, using: SomeOtherEntity }, function(obj) {
         return obj.gender && obj.gender === 1 ? 'male' : 'female';
       });
 
@@ -169,7 +169,7 @@ describe('Entity', function() {
         .add('name')
         .add('borned', { format: 'iso' });
 
-      var obj = SomeEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) })
+      var obj = SomeEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) });
       expect(obj).to.have.property('name', 'Felix Liu');
       expect(obj).to.have.property('borned', new Date(1990, 0, 1).toISOString());
 
@@ -177,7 +177,7 @@ describe('Entity', function() {
         .add('name')
         .add('borned', { format: 'timestamp' });
 
-      var obj1 = SomeOtherEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) })
+      var obj1 = SomeOtherEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) });
       expect(obj1).to.have.property('name', 'Felix Liu');
       expect(obj1).to.have.property('borned', String(new Date(1990, 0, 1).getTime()));
     });
@@ -265,7 +265,7 @@ describe('Entity', function() {
       expect(obj2).to.have.property('name', 'Felix Liu');
       expect(obj2).to.not.have.property('age');
       expect(obj2).to.have.property('gender', 'male');
-    })
+    });
   });
 
   describe('#parse(input, options, converter)', function() {
@@ -276,10 +276,10 @@ describe('Entity', function() {
       UserEntity.add('name', 'city', { type: 'string' });
       UserEntity.add('age', { default: 0 });
       UserEntity.add('gender', { default: 'unknown' });
-      UserEntity.add('isAdult', function(obj, options) {
+      UserEntity.add('isAdult', function(obj) {
         return (obj && obj.age >= 18 ? true : false);
       });
-      UserEntity.add('points', { value: 100, if: function(obj, options) {
+      UserEntity.add('points', { value: 100, if: function(obj) {
         return obj && obj.age >= 18;
       } });
       UserEntity.add('description', { as: 'introduction' });
@@ -366,7 +366,7 @@ describe('Entity', function() {
     });
 
     it('should convert fields value based on converter', function() {
-      var converter = function(val, options) {
+      var converter = function(val) {
         if (val instanceof Date) {
           return util.format('%s-%s-%s', val.getUTCFullYear(), val.getUTCMonth() + 1, val.getUTCDate());
         }
@@ -402,11 +402,27 @@ describe('Entity', function() {
       var inheritedEntity = Entity.clone(entity)
         .add('age', { default: 18 });
 
-      var obj2 = inheritedEntity.parse({ name: 'Felix Liu' })
+      var obj2 = inheritedEntity.parse({ name: 'Felix Liu' });
       expect(obj2).to.have.property('name', 'Felix Liu');
       expect(obj2).to.have.property('age', 18);
       expect(obj1).to.not.have.property('age');
+    });
+  });
 
+  describe('#safeAdd()', function() {
+    it('should create a new entity by calling safeAdd', function() {
+      var entity = new Entity({
+        name: true
+      });
+      var obj1 = entity.parse({ name: 'Felix Liu' });
+      expect(obj1).to.have.property('name', 'Felix Liu');
+
+      var newEntity = entity.safeAdd('age', { default: 18 });
+
+      var obj2 = newEntity.parse({ name: 'Felix Liu' });
+      expect(obj2).to.have.property('name', 'Felix Liu');
+      expect(obj2).to.have.property('age', 18);
+      expect(obj1).to.not.have.property('age');
     });
   });
 
@@ -427,12 +443,12 @@ describe('Entity', function() {
       var inheritedEntity = Entity.extend(entity, { age: { default: 18 } })
         .add('gender', { default: 'male' });
 
-      var obj2 = inheritedEntity.parse({ name: 'Felix Liu' })
+      var obj2 = inheritedEntity.parse({ name: 'Felix Liu' });
       expect(obj2).to.have.property('name', 'Felix Liu');
       expect(obj2).to.have.property('age', 18);
       expect(obj2).to.have.property('gender', 'male');
       expect(obj1).to.not.have.property('age');
       expect(obj1).to.not.have.property('male');
-    })
-  })
+    });
+  });
 });
