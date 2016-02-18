@@ -1,18 +1,63 @@
 /**
- * Expose `Entity`.
+ * Export
  */
 module.exports = Entity;
 
 /**
- * Module dependencies.
+ * Module dependencies
  */
-var util = require('util');
 var assert = require('assert');
 var Normalizer = require('baiji-normalizer');
+var meld = require('baiji-meld');
 var debug = require('debug')('baiji:entity');
 
 /**
- * @class A wrapper to map returns with object value.
+ * @method Validating method for Entity object value
+ * @param {true|String|Array|Object} val
+ * @return {Boolean}
+ *
+ * @api private
+ */
+function _validateValue(val) {
+  return val === true ||
+    Array.isArray(val) ||
+    meld.isObject(val) ||
+    meld.isFunction(val);
+}
+
+/**
+ * @method Add fields definition for Entity object
+ * @param {Object} object
+ * @return {undefined}
+ *
+ * @api private
+ */
+function _addFields(object) {
+  var self = this;
+  var value;
+  var propNames = Object.getOwnPropertyNames(object);
+
+  propNames.forEach(function(key) {
+    value = object[key];
+    assert(_validateValue(value), `Entity Define: object value for key ${key} is invalid, '${value}'`);
+
+    if (value === true) {
+      self.add(key);
+    } else if (Array.isArray(value)){
+      value.unshift(key);
+      self.add.apply(self, value);
+    } else {
+      self.add.apply(self, [key, value]);
+    }
+  });
+}
+
+/**
+ * @class Entity constructor for mapping schema object value with pre-defined object value for final return
+ * @param {Object} object
+ * @return {Entity}
+ *
+ * @api public
  */
 function Entity(object) {
   this._mappings = {};
@@ -20,63 +65,146 @@ function Entity(object) {
 
   if (object === undefined) return;
 
-  assert(util.isObject(object), `${object} is not a valid object`);
+  assert(meld.isObject(object), `${object} is not a valid object`);
 
-  var value;
-  for (var key in object) {
-    if (object.hasOwnProperty(key)) {
-      value = object[key];
-      if (value === true) {
-        this.add(key);
-      } else if (Array.isArray(value)){
-        value.unshift(key);
-        this.add.apply(this, value);
-      } else {
-        this.add.apply(this, [key, value]);
-      }
-    }
-  }
+  _addFields.call(this, object);
+  return this;
 }
 
 /**
- * check whether an object is an Entity instance
+ * @method Format date
+ * @param {Date} date
+ * @param {String} format
+ * @return {String|Number} date
+ *
+ * @api private
  */
-Entity.isEntity = function(entity) {
-  return !!(entity && util.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
+_format = function(date, format) {
+  switch(format) {
+    case 'iso':
+      date = date.toISOString()
+      break;
+    case 'timestamp':
+      date = date.getTime()
+      break;
+  }
+  return date;
+}
+
+/**
+ * @method Clone Entity object
+ * @param {Entity} entity
+ * @return {Entity}
+ * 
+ * @api private
+ */
+function _cloneEntity(entity) {
+  assert(Entity.isEntity(entity), 'entity must be a valid Entity object');
+
+  var newEntity = new Entity();
+  newEntity._mappings = Object.assign({}, entity._mappings);
+  newEntity._keys = entity._keys.slice();
+
+  return newEntity;
+}
+
+/**
+ * @method Clone provided Entity object
+ * @param {Entity} entity
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.clone = function(entity) {
+  return _cloneEntity(entity);
+}
+
+/**
+ * @method An alias for clone method
+ * @param {Entity} entity
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.copy = Entity.clone;
+
+/**
+ * @method Extend a new Entity object based on provided one and object
+ * @param {Entity} entity
+ * @param {Object} object, when object is not a valid Object instance, then fail silently
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.extend = function(entity, object) {
+  var newEntity = _cloneEntity(entity);
+
+  if (meld.isObject(object)) {
+    _addFields.call(newEntity, object);
+  }
+
+  return newEntity;
 };
 
+/**
+ * @method Check whether an object is an Entity instance
+ * @param {Entity} entity
+ * @return {Boolean}
+ *
+ * @api public
+ */
+Entity.isEntity = function(entity) {
+  return !!(meld.isObject(entity) && meld.isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
+};
+
+/**
+ * @method For Entity instance this always return true
+ * @param {any} entity
+ * @return {Boolean}
+ *
+ * @api public
+ */
 Entity.prototype.isEntity = function(entity) {
   return this instanceof Entity;
 };
 
 /**
- * add a given name with or without corresponding function or value
- * { act: 'alias',
- *   value: 'name',
- *   default: null,
- *   using: MyEntity,
- *   if: function(obj, opts) {}
- * }
- * type: support array type
- *    number or ['number']
- *    date or ['date']
- *    string or ['string']
- *    boolean or ['boolean']
- *    any (default) or ['any']
- * act:
- *    function
- *    alias
- *    value
- * Usage:
- *    var entity = new Entity();
- *    entity.add('name');
- *    entity.add('name', { as: 'fullname' });
- *    entity.add('name', { type: 'string', as: 'fullname' });
- *    entity.add('sex', { value: 'male' });
- *    entity.add('isAdult', function(obj) { return obj && obj.age >= 18; });
- *    entity.add('activities', { using: myActivityEntity });
- *    entity.add('extraInfo', { using: myExtraInfoEntity });
- *    entity.add('condition', { if: function(obj, options) { return true } });
+ * @method Add fields with corresponding value or function for final exposure, method could be chained
+ *
+ * @param {String} arg1, ..., argN
+ * @param {Object} [] optional, options for manipulating schema object
+ *
+ * ####Options:
+ *
+ * - as: rename the field to exposure
+ * - value: set specific value for field
+ * - default: set default value for undefined field
+ * - type: normalize field value according to type option, case ignored, see more at https://github.com/baijijs/normalizer
+ * - format: only applied for valid Date value, which automatically turn type option to `string`, now support format of `iso` and `timestamp`, case ignored
+ * - if: set a filter to determine if the field should be return, accept an object and return boolean
+ * - using: use another Entity instance as the filed value
+ *
+ * ####Priority of options:
+ * if -> Function/value -> default -> using
+ *
+ * @param {Function} [] optional, for further manipulation of inputed object according to options
+ *
+ * ####Example:
+ *
+ *     var entity = new Entity();
+ *     entity.add('name');
+ *     entity.add('name', { as: 'fullname' });
+ *     entity.add('name', { type: 'string', as: 'fullname' });
+ *     entity.add('age', { default: 0 });
+ *     entity.add('sex', { value: 'male' });
+ *     entity.add('isAdult', function(obj) { return obj && obj.age >= 18; });
+ *     entity.add('activities', { using: myActivityEntity });
+ *     entity.add('extraInfo', { using: myExtraInfoEntity });
+ *     entity.add('condition', { if: function(obj, options) { return true } });
+ *
+ * @return {Entity}
+ *
+ * @api public
  */
 Entity.prototype.add = function() {
   var fields = Array.prototype.slice.call(arguments);
@@ -89,12 +217,12 @@ Entity.prototype.add = function() {
 
   if (fields.length > 1) {
     // extract `fn`
-    if (util.isFunction(fields[fields.length - 1])) {
+    if (meld.isFunction(fields[fields.length - 1])) {
       fn = Array.prototype.pop.call(fields);
     }
 
     // extract `options`
-    if (util.isObject(fields[fields.length - 1])) {
+    if (meld.isObject(fields[fields.length - 1])) {
       var last = Array.prototype.pop.call(fields);
       var names = Object.getOwnPropertyNames(last);
       Object.assign(options, last);
@@ -102,33 +230,40 @@ Entity.prototype.add = function() {
 
     if (fields.length > 1) {
       assert(!options.as, 'using :as option on multi-fields exposure not allowed');
-      assert(!fn, 'using function on multi-attribute exposure not allowed');
+      assert(!fn, 'using function on multi-fields exposure not allowed');
     }
   }
 
   fields.forEach(function(field) {
-    var value = null;
+    var act ='alias';
+    var value = field;
     var defaultVal = null;
-    var act = null;
     var type = null;
+    var format = null;
     var using = null;
     var ifFn = null;
 
-    assert(util.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
+    assert(meld.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
     assert(!(options.as && fn), 'using :as option with function not allowed');
     assert(!(options.value && fn), 'using :value option with function not allowed');
     assert(!(options.value && options.as), 'using :value option with :as option not allowed');
 
     if (Array.isArray(options.type)) {
-      type = [options.type[0] || 'any'];
+      type = [String.prototype.toLowerCase.call(options.type[0] || 'any')];
     } else {
-      type = options.type || 'any';
+      type = String.prototype.toLowerCase.call(options.type || 'any');
     }
 
-    defaultVal = options.default || null;
+    defaultVal = options.hasOwnProperty('default') ? options.default : null;
+
+    if (options.format) {
+      assert(/^iso$|^timestamp$/i.test(options.format), 'format must be one of ["iso", "timestamp"] value, case ignored');
+      format = options.format.toLowerCase();
+      type = 'string';
+    }
 
     if (options.if) {
-      assert(util.isFunction(options.if), 'if condition must be a function');
+      assert(meld.isFunction(options.if), 'if condition must be a function');
       ifFn = options.if;
     }
 
@@ -138,12 +273,10 @@ Entity.prototype.add = function() {
     }
 
     if (options.as) {
-      assert(util.isString(options.as), 'as must be a String');
+      assert(meld.isString(options.as), 'as must be a string');
     }
 
     if (options.as) {
-      act = 'alias';
-      value = field;
       field = options.as;
     } else if (options.value) {
       act = 'value';
@@ -151,9 +284,6 @@ Entity.prototype.add = function() {
     } else if (fn) {
       act = 'function';
       value = fn;
-    } else {
-      act ='alias';
-      value = field;
     }
 
     self._mappings[field] = {
@@ -161,23 +291,87 @@ Entity.prototype.add = function() {
       act: act,
       value: value,
       default: defaultVal,
+      format: format,
       if: ifFn,
       using: using
     };
   });
 
   self._keys = Object.keys(self._mappings);
+  return self;
 };
 
 /**
- * Entity.prototype.add alias
+ * @method An alias for add method
+ *
+ * @param {String} arg1, ..., argN
+ * @param {Object} [] optional, options for manipulating schema object
+ *
+ * ####Options:
+ *
+ * - as: rename the field to exposure
+ * - value: set specific value for field
+ * - default: set default value for undefined field
+ * - type: normalize field value according to type option, case ignored, see more at https://github.com/baijijs/normalizer
+ * - format: only applied for valid Date value, which automatically turn type option to `string`, now support format of `iso` and `timestamp`, case ignored
+ * - if: set a filter to determine if the field should be return, accept an object and return boolean
+ * - using: use another Entity instance as the filed value
+ *
+ * ####Priority of options:
+ * if -> Function/value -> default -> using
+ *
+ * @param {Function} [] optional, for further manipulation of inputed object according to options
+ *
+ * ####Example:
+ *
+ *     var entity = new Entity();
+ *     entity.expose('name');
+ *     entity.expose('name', { as: 'fullname' });
+ *     entity.expose('name', { type: 'string', as: 'fullname' });
+ *     entity.expose('age', { default: 0 });
+ *     entity.expose('sex', { value: 'male' });
+ *     entity.expose('isAdult', function(obj) { return obj && obj.age >= 18; });
+ *     entity.expose('activities', { using: myActivityEntity });
+ *     entity.expose('extraInfo', { using: myExtraInfoEntity });
+ *     entity.expose('condition', { if: function(obj, options) { return true } });
+ *
+ * @return {Entity}
+ *
+ * @api public
  */
 Entity.prototype.expose = Entity.prototype.add;
 
 /**
- * parse a obj object with mappings
- * @param {Object} obj: obj object values
- * @param {Function} converter: value converter, which can accept one parameter
+ * @method Unexpose certain field, used for extended entity
+ * @param {String} arg1, ..., argN invalid arguments are ignored silently
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.prototype.unexpose = function() {
+  var fields = Array.prototype.slice.call(arguments);
+  fields.forEach(function(field, key) {
+    if (typeof field === 'string') {
+      delete this._mappings[field];
+    }
+  }, this);
+  this._keys = Object.keys(this._mappings);
+  return this;
+};
+
+/**
+ * @method Parse input object according to Entity exposure definition
+ * @param {Object} obj
+ * @param {Object} [options] optional
+ *
+ * ####Options:
+ *
+ * - overwrite: for fields with value of undefined, if default value is provided from Entity definition, then set this field value of input object with default value
+ *
+ * @param {Function} [converter] accept field value and options, return computed value
+ * @return {Object} return computed key value pairs
+ *
+ * @api public
  */
 Entity.prototype.parse = function(obj, options, converter) {
   debug('parsing %j with options %j and converter', obj, options);
@@ -185,25 +379,25 @@ Entity.prototype.parse = function(obj, options, converter) {
   var result = {};
   var self = this;
 
-  originalObj = util.isNullOrUndefined(obj) ? {} : obj;
+  originalObj = meld.isNil(obj) ? {} : obj;
 
-  if (util.isFunction(options)) {
+  if (meld.isFunction(options)) {
     converter = options;
   }
 
-  if (!util.isObject(options)) {
+  if (!meld.isObject(options)) {
     options = {};
   }
 
   if (Array.isArray(originalObj)) {
-    // if obj is an Array, then loop it
+    // When obj is an Array, loop through it
     result = originalObj.map(function(obj) {
       return self.parse(obj, options, converter);
     });
     return result;
   } else {
     if (self._keys.length === 0) {
-      // if no exposes, return
+      // Just return when no exposure
       return result;
     } else {
       self._keys.forEach(function(key) {
@@ -233,12 +427,15 @@ Entity.prototype.parse = function(obj, options, converter) {
 
         var isDefaultValueApplied = false;
         // if value is `null`, `undefined`, set default value
-        if (util.isNullOrUndefined(val)) {
+        if (meld.isNil(val)) {
           val = o.default;
+          if (options.overwrite) {
+            obj[key] = val;
+          }
           isDefaultValueApplied = true;
         }
 
-        if (converter && util.isFunction(converter)) {
+        if (converter && meld.isFunction(converter)) {
           val = converter(val, options);
         }
 
@@ -246,7 +443,10 @@ Entity.prototype.parse = function(obj, options, converter) {
           val = o.using.parse(val, options, converter);
         }
 
-        // cast type according to predefined dynamic converters
+        // apply format for valid Date object
+        val = meld.isDate(val) && o.format && _format(val, o.format) || val;
+
+        // Normalize field value with Normalizer
         try {
           val = Normalizer.convert(val, o.type, options);
         } catch (err) {
