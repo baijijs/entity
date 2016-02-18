@@ -68,6 +68,7 @@ function Entity(object) {
   assert(bue.isObject(object), `${object} is not a valid object`);
 
   _addFields.call(this, object);
+
   return this;
 }
 
@@ -297,6 +298,7 @@ Entity.prototype.add = function() {
   });
 
   self._keys = Object.keys(self._mappings);
+
   return self;
 };
 
