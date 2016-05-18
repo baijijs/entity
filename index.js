@@ -207,6 +207,17 @@ Entity.prototype.isEntity = function() {
 };
 
 /**
+ * @method Clone self
+ * @param {Entity} entity
+ * @return {Entity}
+ *
+ * @api public
+ */
+Entity.prototype.clone = function() {
+  return _cloneEntity(this);
+};
+
+/**
  * @method Add fields with corresponding value or function for final exposure, method could be chained
  *
  * @param {String} arg1, ..., argN
