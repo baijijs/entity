@@ -97,6 +97,8 @@ function _addFields(object) {
  * @api public
  */
 function Entity(object) {
+  if (!(this instanceof Entity)) return new Entity(object);
+
   this._mappings = {};
   this._keys = [];
 
