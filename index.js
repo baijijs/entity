@@ -220,6 +220,41 @@ Entity.prototype.clone = function() {
 };
 
 /**
+ * @method Get obj value by key
+ * @param {Object} obj
+ * @param {String} key
+ * @return {Any}
+ *
+ * @api public
+ */
+Entity.prototype.get = function(obj, key) {
+  return obj[key];
+};
+
+/**
+ * @method Set obj value by key
+ * @param {Object} obj
+ * @param {String} key
+ * @return {Null}
+ *
+ * @api public
+ */
+Entity.prototype.set = function(obj, key, value) {
+  obj[key] = value;
+};
+
+/**
+ * @method Check if obj is an array
+ * @param {Object} obj
+ * @return {Boolean}
+ *
+ * @api public
+ */
+Entity.prototype.isArray = function(obj) {
+  return Array.isArray(obj);
+};
+
+/**
  * @method Add fields with corresponding value or function for final exposure, method could be chained
  *
  * @param {String} arg1, ..., argN
@@ -463,10 +498,10 @@ Entity.prototype.parse = function(obj, options, converter) {
     options = {};
   }
 
-  if (Array.isArray(originalObj)) {
+  if (self.isArray(originalObj)) {
     // When obj is an Array, loop through it
-    result = originalObj.map(function(obj) {
-      return self.parse(obj, options, converter);
+    result = originalObj.map(function(o) {
+      return self.parse(o, options, converter);
     });
     return result;
   } else {
@@ -492,7 +527,7 @@ Entity.prototype.parse = function(obj, options, converter) {
             }
             break;
           case 'alias':
-            val = originalObj[o.value];
+            val = self.get(originalObj, o.value);
             break;
           case 'value':
             val = o.value;
@@ -504,7 +539,7 @@ Entity.prototype.parse = function(obj, options, converter) {
         if (val == null) {
           val = o.default;
           if (options.overwrite) {
-            obj[key] = val;
+            self.set(originalObj, key, val);
           }
           isDefaultValueApplied = true;
         }
