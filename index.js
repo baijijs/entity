@@ -220,7 +220,7 @@ Entity.prototype.clone = function() {
 };
 
 /**
- * @method Get obj value by key
+ * @method Get obj value by key, overwrite this method for special object
  * @param {Object} obj
  * @param {String} key
  * @return {Any}
@@ -232,7 +232,7 @@ Entity.prototype.get = function(obj, key) {
 };
 
 /**
- * @method Set obj value by key
+ * @method Set obj value by key, overwrite this method for special object
  * @param {Object} obj
  * @param {String} key
  * @return {Null}
@@ -244,7 +244,7 @@ Entity.prototype.set = function(obj, key, value) {
 };
 
 /**
- * @method Check if obj is an array
+ * @method Check if obj is an array, overwrite this method for special object
  * @param {Object} obj
  * @return {Boolean}
  *
