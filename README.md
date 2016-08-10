@@ -115,25 +115,28 @@ Options:
   - overwrite: for fields with value of undefined, if default value is provided from Entity definition, then set this field value of input object with default value
 
 ```javascript
-let Entity = require('baiji-entity');
+// Require baiji-entity module
+const Entity = require('baiji-entity');
 
-let UserEntity = new Entity();
-UserEntity.add('name', 'city', { type: 'string' });
-UserEntity.add('age', { type: 'number', default: 0 });
-UserEntity.add('gender', { type: 'string', default: 'unknown' });
-UserEntity.add('isAdult', { type: 'boolean', default: false }, function(obj, options) {
-  return (obj && obj.age >= 18 ? true : false);
+// Define userEntity
+let userEntity = new Entity({
+  name: true,
+  city: { type: 'string' },
+  age: { type: 'number', default: 0 },
+  gender: { type: 'string', default: 'unknown' },
+  isAdult: [{ type: 'boolean', default: false }, function(obj, options) {
+    return (obj && obj.age >= 18 ? true : false);
+  }],
+  points: { value: 100, if: function(obj, options) { return obj && obj.age >= 18; } },
+  description: { as: 'introduction', type: 'string', default: '' },
+  isSignedIn: function(obj, options) {
+    return (options && options.isSignedIn ? true : false);
+  },
+  birthday: { default: '', type: 'date', format: 'iso' }
 });
-UserEntity.add('points', { value: 100, if: function(obj, options) {
-  return obj && obj.age >= 18;
-} });
-UserEntity.add('description', { as: 'introduction', type: 'string', default: '' });
-UserEntity.add('isSignedIn', function(obj, options) {
-  return (options && options.isSignedIn ? true : false);
-});
-UserEntity.add('birthday', { default: '', type: 'date', format: 'iso' });
 
-UserEntity.parse({
+// Parse source data
+userEntity.parse({
   name: 'Felix Liu',
   age: 18,
   city: 'Shanghai',
@@ -142,7 +145,7 @@ UserEntity.parse({
   password: 'xxxxxxx'
 }, { isSignedIn: true });
 
-// The parsed output will be as below:
+// The parsed output will be as below ⬇️
 
 {
   name: 'Felix Liu',
