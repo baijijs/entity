@@ -23,7 +23,9 @@ Define a new Entity object with object
 The object's key and value pairs are the same as field and options pairs from .add method
 
 ``` javascript
-var entity = new Entity({
+const Entity = require('baiji-entity');
+
+let entity = new Entity({
   name: true,
   sex: { as: 'gender' },
   age: { default: 18 },
@@ -83,7 +85,7 @@ Options:
 fn optional, for further manipulation of inputed object according to options
 
 ``` javascript
-var entity = new Entity();
+let entity = new Entity();
 entity.add('name');
 entity.add('name', { as: 'fullname' });
 entity.add('name', { type: 'string', as: 'fullname' });
@@ -113,37 +115,46 @@ Options:
   - overwrite: for fields with value of undefined, if default value is provided from Entity definition, then set this field value of input object with default value
 
 ```javascript
-var Entity = require('baiji-entity');
+let Entity = require('baiji-entity');
 
-UserEntity = new Entity();
+let UserEntity = new Entity();
 UserEntity.add('name', 'city', { type: 'string' });
-UserEntity.add('age', { default: 0 });
-UserEntity.add('gender', { default: 'unknown' });
-UserEntity.add('isAdult', function(obj, options) {
+UserEntity.add('age', { type: 'number', default: 0 });
+UserEntity.add('gender', { type: 'string', default: 'unknown' });
+UserEntity.add('isAdult', { type: 'boolean', default: false }, function(obj, options) {
   return (obj && obj.age >= 18 ? true : false);
 });
 UserEntity.add('points', { value: 100, if: function(obj, options) {
   return obj && obj.age >= 18;
 } });
-UserEntity.add('description', { as: 'introduction' });
+UserEntity.add('description', { as: 'introduction', type: 'string', default: '' });
 UserEntity.add('isSignedIn', function(obj, options) {
   return (options && options.isSignedIn ? true : false);
 });
-UserEntity.add('birthday', { default: new Date('2015-10-10 10:00:00') });
+UserEntity.add('birthday', { default: '', type: 'date', format: 'iso' });
 
-// The parsed output would be
-var user = {
+UserEntity.parse({
+  name: 'Felix Liu',
+  age: 18,
+  city: 'Shanghai',
+  birthday: new Date('2015-10-10 10:00:00'),
+  description: 'A programmer who lives in Shanghai',
+  password: 'xxxxxxx'
+}, { isSignedIn: true });
+
+// The parsed output will be as below:
+
+{
   name: 'Felix Liu',
   age: 18,
   city: 'Shanghai',
   gender: 'unknown',
   isAdult: true,
-  state: 'Shanghai',
   points: 100,
-  birthday: Date('2015-10-10 10:00:00'),
+  birthday: '2015-10-10T02:00:00.000Z',
   introduction: 'A programmer who lives in Shanghai'
   isSignedIn: false
-};
+}
 ```
 
 # License
