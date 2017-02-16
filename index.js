@@ -71,18 +71,19 @@ function _validateValue(val) {
  */
 function _addFields(object) {
   var self = this;
-  var value;
   var propNames = Object.getOwnPropertyNames(object);
 
   propNames.forEach(function(key) {
-    value = object[key];
-    assert(_validateValue(value), `Entity Define: object value for key ${key} is invalid, '${value}'`);
+    var value = object[key];
+    assert(
+      _validateValue(value),
+      'Entity Define: object value for key ' + key + ' is invalid, \'' + value + '\''
+    );
 
     if (value === true) {
       self.add(key);
     } else if (Array.isArray(value)){
-      value.unshift(key);
-      self.add.apply(self, value);
+      self.add.apply(self, [key].concat(value));
     } else {
       self.add.apply(self, [key, value]);
     }
@@ -104,7 +105,7 @@ function Entity(object) {
 
   if (object === undefined) return;
 
-  assert(isObject(object), `${object} is not a valid object`);
+  assert(isObject(object), object + ' is not a valid object');
 
   _addFields.call(this, object);
 
@@ -328,7 +329,7 @@ Entity.prototype.add = function() {
     var using = null;
     var ifFn = null;
 
-    assert(isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), `field ${field} must be a string`);
+    assert(isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), 'field ' + field + ' must be a string');
     assert(!(options.as && fn), 'using :as option with function not allowed');
     assert(!(options.value && fn), 'using :value option with function not allowed');
     assert(!(options.value && options.as), 'using :value option with :as option not allowed');
