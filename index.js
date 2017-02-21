@@ -70,24 +70,25 @@ function _validateValue(val) {
  * @api private
  */
 function _addFields(object) {
-  var self = this;
-  var propNames = Object.getOwnPropertyNames(object);
+  var propNames = Object.keys(object);
 
-  propNames.forEach(function(key) {
+  for(var i = 0; i < propNames.length; i++) {
+    var key = propNames[i];
+
     var value = object[key];
     assert(
       _validateValue(value),
-      'Entity Define: object value for key ' + key + ' is invalid, \'' + value + '\''
+      'Entity definition: object value for key ' + key + ' is invalid, \'' + value + '\''
     );
 
     if (value === true) {
-      self.add(key);
+      this.add(key);
     } else if (Array.isArray(value)){
-      self.add.apply(self, [key].concat(value));
+      this.add.apply(this, [key].concat(value));
     } else {
-      self.add.apply(self, [key, value]);
+      this.add.apply(this, [key, value]);
     }
-  });
+  }
 }
 
 /**
@@ -180,9 +181,7 @@ Entity.copy = Entity.clone;
 Entity.extend = function(entity, object) {
   var newEntity = _cloneEntity(entity);
 
-  if (isObject(object)) {
-    _addFields.call(newEntity, object);
-  }
+  if (isObject(object)) _addFields.call(newEntity, object);
 
   return newEntity;
 };
@@ -195,7 +194,7 @@ Entity.extend = function(entity, object) {
  * @api public
  */
 Entity.isEntity = function(entity) {
-  return !!(isObject(entity) && isFunction(entity.isEntity) && this.prototype.isEntity.call(entity));
+  return isObject(entity) && entity instanceof Entity;
 };
 
 /**
@@ -305,12 +304,12 @@ Entity.prototype.add = function() {
   if (fields.length > 1) {
     // extract `fn`
     if (isFunction(fields[fields.length - 1])) {
-      fn = Array.prototype.pop.call(fields);
+      fn = fields.pop();
     }
 
     // extract `options`
     if (isObject(fields[fields.length - 1])) {
-      var last = Array.prototype.pop.call(fields);
+      var last = fields.pop();
       Object.assign(options, last);
     }
 
@@ -335,9 +334,9 @@ Entity.prototype.add = function() {
     assert(!(options.value && options.as), 'using :value option with :as option not allowed');
 
     if (Array.isArray(options.type)) {
-      type = [String.prototype.toLowerCase.call(options.type[0] || 'any')];
+      type = [(options.type[0] || '').toLowerCase() || 'any'];
     } else {
-      type = String.prototype.toLowerCase.call(options.type || 'any');
+      type = (options.type || '').toLowerCase() || 'any';
     }
 
     defaultVal = options.hasOwnProperty('default') ? options.default : null;
@@ -556,11 +555,13 @@ Entity.prototype.parse = function(obj, options, converter) {
         // apply format for valid Date object
         val = isDate(val) && o.format && _format(val, o.format) || val;
 
-        // Normalize field value with Normalizer
-        try {
-          val = Normalizer.convert(val, o.type, options);
-        } catch (err) {
-          debug('[ERROR] -> ', err);
+        // Normalize field value with Normalizer except value already parsed by another entity
+        if (!o.using) {
+          try {
+            val = Normalizer.convert(val, o.type, options);
+          } catch (err) {
+            debug('[ERROR] -> ', err);
+          }
         }
 
         result[key] = val;
