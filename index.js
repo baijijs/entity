@@ -320,11 +320,11 @@ Entity.prototype.add = function() {
   fields.forEach(function(field) {
     var act ='alias';
     var value = field;
-    var defaultVal = null;
-    var type = null;
-    var format = null;
-    var using = null;
-    var ifFn = null;
+    var defaultVal = undefined;
+    var type = undefined;
+    var format = undefined;
+    var using = undefined;
+    var ifFn = undefined;
 
     assert(isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), 'field ' + field + ' must be a string');
     assert(!(options.as && fn), 'using :as option with function not allowed');
@@ -337,7 +337,7 @@ Entity.prototype.add = function() {
       type = (options.type || '').toLowerCase() || 'any';
     }
 
-    defaultVal = options.hasOwnProperty('default') ? options.default : null;
+    defaultVal = options.hasOwnProperty('default') ? options.default : defaultVal;
 
     if (options.format) {
       assert(/^iso$|^timestamp$/i.test(options.format), 'format must be one of ["iso", "timestamp"] value, case ignored');
@@ -511,7 +511,7 @@ Entity.prototype.parse = function(obj, options, converter) {
     } else {
       self._keys.forEach(function(key) {
         var o = self._mappings[key];
-        var val = null;
+        var val = undefined;
 
         if (o.if && !o.if(originalObj, options)) {
           return;
@@ -523,7 +523,7 @@ Entity.prototype.parse = function(obj, options, converter) {
               val = o.value(originalObj, options);
             } catch(err) {
               debug('[ERROR] -> ', err);
-              val = null;
+              val = undefined;
             }
             break;
           case 'alias':
