@@ -199,7 +199,6 @@ Entity.isEntity = function(entity) {
 
 /**
  * @method For Entity instance this always return true
- * @param {any} entity
  * @return {Boolean}
  *
  * @api public
@@ -210,7 +209,6 @@ Entity.prototype.isEntity = function() {
 
 /**
  * @method Clone self
- * @param {Entity} entity
  * @return {Entity}
  *
  * @api public
@@ -492,11 +490,13 @@ Entity.prototype.parse = function(obj, options, converter) {
 
   if (typeof options === 'function') {
     converter = options;
+    options = {};
+  } else {
+    options = options || {};
   }
 
-  if (!isObject(options)) {
-    options = {};
-  }
+  // Avoid automatically coerce by Normalizer
+  options = Object.assign({ coerce: false }, options);
 
   if (self.isArray(originalObj)) {
     // When obj is an Array, loop through it
@@ -548,24 +548,23 @@ Entity.prototype.parse = function(obj, options, converter) {
           val = converter(val, options);
         }
 
+        // apply format for valid Date object
+        val = isDate(val) && o.format ? _format(val, o.format) : val;
+
+        // Normalize field value with Normalizer except value already parsed by another entity
+        try {
+          val = Normalizer.convert(val, o.type, options);
+        } catch (err) {
+          debug('[ERROR] -> ', err);
+        }
+
         if (!isDefaultValueApplied && o.using) {
           val = o.using.parse(val, options, converter);
         }
 
-        // apply format for valid Date object
-        val = isDate(val) && o.format && _format(val, o.format) || val;
-
-        // Normalize field value with Normalizer except value already parsed by another entity
-        if (!o.using) {
-          try {
-            val = Normalizer.convert(val, o.type, options);
-          } catch (err) {
-            debug('[ERROR] -> ', err);
-          }
-        }
-
         result[key] = val;
       });
+
       return result;
     }
   }
