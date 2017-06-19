@@ -495,6 +495,12 @@ Entity.prototype.parse = function(obj, options, converter) {
     options = options || {};
   }
 
+  if (isString(options.fields)) {
+    options.fields = options.fields.split(' ');
+  } else if (!Array.isArray(options.fields)) {
+    options.fields = null;
+  }
+
   // Avoid automatically coerce by Normalizer
   options = Object.assign({ coerce: false }, options);
 
@@ -509,8 +515,10 @@ Entity.prototype.parse = function(obj, options, converter) {
       // Just return when no exposure
       return result;
     } else {
-      self._keys.forEach(function(key) {
+      (options.fields || self._keys).forEach(function(key) {
         var o = self._mappings[key];
+        if (!o) return;
+
         var val = undefined;
 
         if (o.if && !o.if(originalObj, options)) {
@@ -559,7 +567,9 @@ Entity.prototype.parse = function(obj, options, converter) {
         }
 
         if (!isDefaultValueApplied && o.using) {
-          val = o.using.parse(val, options, converter);
+          var opts = Object.assign({}, options);
+          delete opts.fields;
+          val = o.using.parse(val, opts, converter);
         }
 
         result[key] = val;
