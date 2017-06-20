@@ -134,6 +134,29 @@ var _format = function(date, format) {
 };
 
 /**
+ * @method Compile str to javascript object
+ * @param {String} str
+ * @return {Object} obj
+ *
+ * @api private
+ * @desc convert 'id name profile(gender)' to { id: 1, name: 1, profile: { gender: 1 } }
+ */
+var compile = function(str) {
+  str = str || '';
+  str = '(' + str + ')';
+  str = str.replace(/([^ \(\)]+)/g, '"$1"')
+    .replace(/\) */g, ' },')
+    .replace(/, \}/g, ',}')
+    .replace(/ +/g, ':1,')
+    .replace(/\(/g, ':{')
+    .replace(/^\: */, '')
+    .replace(/ *,$/, '')
+    .replace(/\, *\}/g, '}');
+
+  return JSON.parse(str);
+};
+
+/**
  * @method Clone Entity object
  * @param {Entity} entity
  * @return {Entity}
@@ -496,13 +519,17 @@ Entity.prototype.parse = function(obj, options, converter) {
   }
 
   if (isString(options.fields)) {
-    options.fields = options.fields.split(' ');
-  } else if (!Array.isArray(options.fields)) {
-    options.fields = null;
+    options.fields = compile(options.fields);
+  } else if (!isObject(options.fields) || !options.fields) {
+    options.fields = Object.create(null);
   }
 
   // Avoid automatically coerce by Normalizer
   options = Object.assign({ coerce: false }, options);
+
+  // Choose fields to be exposed
+  var fields = Object.keys(options.fields);
+  fields = fields.length ? fields : self._keys;
 
   if (self.isArray(originalObj)) {
     // When obj is an Array, loop through it
@@ -515,7 +542,7 @@ Entity.prototype.parse = function(obj, options, converter) {
       // Just return when no exposure
       return result;
     } else {
-      (options.fields || self._keys).forEach(function(key) {
+      fields.forEach(function(key) {
         var o = self._mappings[key];
         if (!o) return;
 
@@ -569,6 +596,7 @@ Entity.prototype.parse = function(obj, options, converter) {
         if (!isDefaultValueApplied && o.using) {
           var opts = Object.assign({}, options);
           delete opts.fields;
+          opts.fields = options.fields[key] || {};
           val = o.using.parse(val, opts, converter);
         }
 
