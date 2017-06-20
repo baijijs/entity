@@ -144,11 +144,13 @@ var _format = function(date, format) {
 var compile = function(str) {
   str = str || '';
   str = '(' + str + ')';
-  str = str.replace(/([^ \(\)]+)/g, '"$1"')
+  str = str
+    .replace(/\n/g, ' ')
+    .replace(/([^ \(\)]+)/g, '"$1"')
     .replace(/\) */g, ' },')
     .replace(/, \}/g, ',}')
+    .replace(/ *\( */g, ':{')
     .replace(/ +/g, ':1,')
-    .replace(/\(/g, ':{')
     .replace(/^\: */, '')
     .replace(/ *,$/, '')
     .replace(/\, *\}/g, '}');
