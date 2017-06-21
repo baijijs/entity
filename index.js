@@ -145,7 +145,7 @@ var compile = function(str) {
   str = str || '';
   str = '(' + str + ')';
   str = str
-    .replace(/\n/g, ' ')
+    .replace(/\s/g, ' ')
     .replace(/([^ \(\)]+)/g, '"$1"')
     .replace(/\) */g, ' },')
     .replace(/, \}/g, ',}')
