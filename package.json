@@ -1,6 +1,6 @@
 {
   "name": "baiji-entity",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Expose API fields for endpoint user",
   "main": "index.js",
   "scripts": {
