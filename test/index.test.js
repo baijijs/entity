@@ -15,31 +15,48 @@ describe('Entity', function() {
 
   describe('#constructor', function() {
     it('should be able to add fields via initialization', function() {
+      var profileEntity = new Entity({
+        hobbies: { type: 'string' },
+        location: { type: 'string' }
+      });
+
       var entity = new Entity({
         name: true,
         sex: { as: 'gender' },
         age: { default: 16 },
         isAdult: function(obj) { return obj.age >= 18 ? true : false; },
         girlfriend: { default: true, if: function(obj) { return obj.age >= 16 ? true : false; } },
-        social: [{ using: SomeEntity }, function() { return {}; }]
+        social: [{ using: SomeEntity }, function() { return {}; }],
+        profile: { type: 'object', using: profileEntity, default: {} }
       });
 
-      var obj1 = entity.parse({ name: 'Felix Liu', sex: 'male', age: 20, skype: 'mySkype' });
-      var obj2 = entity.parse({ name: 'Felix Liu', sex: 'male' });
-      var obj3 = entity.parse({ name: 'Felix Liu', sex: 'male' }, { overwrite: true });
+      var obj1 = entity.parse({ name: 'felix', sex: 'male', age: 20, skype: 'mySkype' });
+      var obj2 = entity.parse({ name: 'felix', sex: 'male' });
+      var obj3 = entity.parse({ name: 'felix', sex: 'male' }, { overwrite: true });
+      var obj4 = entity.parse(
+        { name: 'felix', sex: 'male', profile: { location: 'nowhere' } },
+        { fields: 'name profile(location)' }
+      );
 
-      expect(obj1).to.have.property('name', 'Felix Liu');
+      expect(obj1).to.have.property('name', 'felix');
       expect(obj1).to.have.property('gender', 'male');
       expect(obj1).to.have.property('age', 20);
       expect(obj1).to.have.property('isAdult', true);
       expect(obj1).to.have.property('girlfriend', true);
       expect(obj1).to.not.have.property('mySkype');
-      expect(obj2).to.have.property('name', 'Felix Liu');
+
+      expect(obj2).to.have.property('name', 'felix');
       expect(obj2).to.have.property('gender', 'male');
       expect(obj2).to.have.property('age', 16);
       expect(obj2).to.have.property('isAdult', false);
       expect(obj2).to.not.have.property('girlfriend');
+
       expect(obj3).to.have.property('girlfriend');
+
+      expect(obj4).to.have.property('name', 'felix');
+      expect(obj4).to.not.have.property('sex');
+      expect(obj4).to.have.deep.property('profile.location', 'nowhere');
+      expect(obj4).to.not.have.deep.property('profile.hobbies');
     });
 
     it('should be able to chain initialization with add method', function() {
@@ -49,9 +66,9 @@ describe('Entity', function() {
       .add('sex', { as: 'gender' })
       .add('age', { default: 16 });
 
-      var obj = entity.parse({ name: 'Felix Liu', sex: 'male' });
+      var obj = entity.parse({ name: 'felix', sex: 'male' });
 
-      expect(obj).to.have.property('name', 'Felix Liu');
+      expect(obj).to.have.property('name', 'felix');
       expect(obj).to.have.property('gender', 'male');
       expect(obj).to.have.property('age', 16);
     });
@@ -96,9 +113,9 @@ describe('Entity', function() {
 
       expect(fn).to.not.throw(Error);
 
-      var obj = entity.parse({ name: 'Felix Liu', gender: 'male', age: 20 });
+      var obj = entity.parse({ name: 'felix', gender: 'male', age: 20 });
 
-      expect(obj).to.have.property('name', 'Felix Liu');
+      expect(obj).to.have.property('name', 'felix');
       expect(obj).to.have.property('age', 20);
       expect(obj).to.have.property('gender', 'male');
     });
@@ -122,7 +139,7 @@ describe('Entity', function() {
 
       expect(fn).to.not.throw(Error);
 
-      var obj = entity.parse({ name: 'Felix Liu', gender: 'male', age: 20 });
+      var obj = entity.parse({ name: 'felix', gender: 'male', age: 20 });
 
       expect(obj).to.have.property('name');
       expect(obj).to.have.property('age', 20);
@@ -140,7 +157,7 @@ describe('Entity', function() {
       })
       .add('info', { using: infoEntity });
 
-      var obj = entity.parse({ name: 'Felix Liu', info: { age: 20 } });
+      var obj = entity.parse({ name: 'felix', info: { age: 20 } });
 
       expect(obj).to.have.property('name');
       expect(obj).to.have.deep.property('info.age', 20);
@@ -156,7 +173,7 @@ describe('Entity', function() {
         return obj.gender && obj.gender === 1 ? 'male' : 'female';
       });
 
-      var obj = SomeEntity.parse({ name: 'Felix Liu', age: 15, gender: 1 });
+      var obj = SomeEntity.parse({ name: 'felix', age: 15, gender: 1 });
 
       expect(obj).to.not.have.property('name');
       expect(obj).to.have.property('fullName').to.be.empty;
@@ -169,16 +186,16 @@ describe('Entity', function() {
         .add('name')
         .add('borned', { format: 'iso' });
 
-      var obj = SomeEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) });
-      expect(obj).to.have.property('name', 'Felix Liu');
+      var obj = SomeEntity.parse({ name: 'felix', borned: new Date(1990, 0, 1) });
+      expect(obj).to.have.property('name', 'felix');
       expect(obj).to.have.property('borned', new Date(1990, 0, 1).toISOString());
 
       SomeOtherEntity
         .add('name')
         .add('borned', { format: 'timestamp' });
 
-      var obj1 = SomeOtherEntity.parse({ name: 'Felix Liu', borned: new Date(1990, 0, 1) });
-      expect(obj1).to.have.property('name', 'Felix Liu');
+      var obj1 = SomeOtherEntity.parse({ name: 'felix', borned: new Date(1990, 0, 1) });
+      expect(obj1).to.have.property('name', 'felix');
       expect(obj1).to.have.property('borned', String(new Date(1990, 0, 1).getTime()));
     });
 
@@ -255,14 +272,14 @@ describe('Entity', function() {
         gender: { default: 'male' }
       });
 
-      var obj1 = entity.parse({ name: 'Felix Liu' });
-      expect(obj1).to.have.property('name', 'Felix Liu');
+      var obj1 = entity.parse({ name: 'felix' });
+      expect(obj1).to.have.property('name', 'felix');
       expect(obj1).to.have.property('age', 18);
       expect(obj1).to.have.property('gender', 'male');
 
       entity.unexpose('age');
-      var obj2 = entity.parse({ name: 'Felix Liu' });
-      expect(obj2).to.have.property('name', 'Felix Liu');
+      var obj2 = entity.parse({ name: 'felix' });
+      expect(obj2).to.have.property('name', 'felix');
       expect(obj2).to.not.have.property('age');
       expect(obj2).to.have.property('gender', 'male');
     });
@@ -299,14 +316,14 @@ describe('Entity', function() {
 
     it('should only return exposed fields', function() {
       var user = {
-        name: 'Felix Liu',
+        name: 'felix',
         age: 18,
         city: 'Shanghai',
         state: 'Shanghai'
       };
 
       var result = UserEntity.parse(user);
-      expect(result).to.have.property('name', 'Felix Liu');
+      expect(result).to.have.property('name', 'felix');
       expect(result).to.have.property('city', 'Shanghai');
       expect(result).to.have.property('age', 18);
       expect(result).to.not.have.property('state');
@@ -396,14 +413,14 @@ describe('Entity', function() {
       var entity = new Entity({
         name: true
       });
-      var obj1 = entity.parse({ name: 'Felix Liu' });
-      expect(obj1).to.have.property('name', 'Felix Liu');
+      var obj1 = entity.parse({ name: 'felix' });
+      expect(obj1).to.have.property('name', 'felix');
 
       var inheritedEntity = Entity.clone(entity)
         .add('age', { default: 18 });
 
-      var obj2 = inheritedEntity.parse({ name: 'Felix Liu' });
-      expect(obj2).to.have.property('name', 'Felix Liu');
+      var obj2 = inheritedEntity.parse({ name: 'felix' });
+      expect(obj2).to.have.property('name', 'felix');
       expect(obj2).to.have.property('age', 18);
       expect(obj1).to.not.have.property('age');
     });
@@ -414,13 +431,13 @@ describe('Entity', function() {
       var entity = new Entity({
         name: true
       });
-      var obj1 = entity.parse({ name: 'Felix Liu' });
-      expect(obj1).to.have.property('name', 'Felix Liu');
+      var obj1 = entity.parse({ name: 'felix' });
+      expect(obj1).to.have.property('name', 'felix');
 
       var newEntity = entity.safeAdd('age', { default: 18 });
 
-      var obj2 = newEntity.parse({ name: 'Felix Liu' });
-      expect(obj2).to.have.property('name', 'Felix Liu');
+      var obj2 = newEntity.parse({ name: 'felix' });
+      expect(obj2).to.have.property('name', 'felix');
       expect(obj2).to.have.property('age', 18);
       expect(obj1).to.not.have.property('age');
     });
@@ -437,14 +454,14 @@ describe('Entity', function() {
       var entity = new Entity({
         name: true
       });
-      var obj1 = entity.parse({ name: 'Felix Liu' });
-      expect(obj1).to.have.property('name', 'Felix Liu');
+      var obj1 = entity.parse({ name: 'felix' });
+      expect(obj1).to.have.property('name', 'felix');
 
       var inheritedEntity = Entity.extend(entity, { age: { default: 18 } })
         .add('gender', { default: 'male' });
 
-      var obj2 = inheritedEntity.parse({ name: 'Felix Liu' });
-      expect(obj2).to.have.property('name', 'Felix Liu');
+      var obj2 = inheritedEntity.parse({ name: 'felix' });
+      expect(obj2).to.have.property('name', 'felix');
       expect(obj2).to.have.property('age', 18);
       expect(obj2).to.have.property('gender', 'male');
       expect(obj1).to.not.have.property('age');

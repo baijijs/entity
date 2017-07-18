@@ -306,10 +306,10 @@ Entity.prototype.isArray = function(obj) {
  *     entity.add('name', { type: 'string', as: 'fullname' });
  *     entity.add('age', { default: 0 });
  *     entity.add('sex', { value: 'male' });
- *     entity.add('isAdult', function(obj) { return obj && obj.age >= 18; });
+ *     entity.add('isAdult', function(obj, options, key) { return obj && obj.age >= 18; });
  *     entity.add('activities', { using: myActivityEntity });
  *     entity.add('extraInfo', { using: myExtraInfoEntity });
- *     entity.add('condition', { if: function(obj, options) { return true } });
+ *     entity.add('condition', { if: function(obj, options, key) { return true } });
  *
  * @return {Entity}
  *
@@ -496,9 +496,10 @@ Entity.prototype.safeExpose = Entity.prototype.safeAdd;
  * @param {Object} obj
  * @param {Object} [options] optional
  *
- * ####Options:
+ * #### Options:
  *
  * - overwrite: for fields with value of undefined, if default value is provided from Entity definition, then set this field value of input object with default value
+ * - fields: allow to choose fields via `id name profile(gender)`
  *
  * @param {Function} [converter] accept field value and options, return computed value
  * @return {Object} return computed key value pairs
@@ -550,14 +551,14 @@ Entity.prototype.parse = function(obj, options, converter) {
 
         var val = undefined;
 
-        if (o.if && !o.if(originalObj, options)) {
+        if (o.if && !o.if(originalObj, options, key)) {
           return;
         }
 
         switch(o.act){
           case 'function':
             try {
-              val = o.value(originalObj, options);
+              val = o.value(originalObj, options, key);
             } catch(err) {
               debug('[ERROR] -> ', err);
               val = undefined;
@@ -582,7 +583,7 @@ Entity.prototype.parse = function(obj, options, converter) {
         }
 
         if (converter && typeof converter === 'function') {
-          val = converter(val, options);
+          val = converter(val, options, key);
         }
 
         // apply format for valid Date object
