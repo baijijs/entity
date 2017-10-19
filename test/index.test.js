@@ -22,10 +22,10 @@ describe('Entity', function() {
 
       var entity = new Entity({
         name: true,
-        sex: { as: 'gender' },
-        age: { default: 16 },
+        sex: { type: 'string', as: 'gender' },
+        age: { type: 'number', default: 16 },
         isAdult: function(obj) { return obj.age >= 18 ? true : false; },
-        girlfriend: { default: true, if: function(obj) { return obj.age >= 16 ? true : false; } },
+        girlfriend: { type: 'boolean', default: true, if: function(obj) { return obj.age >= 16 ? true : false; } },
         social: [{ using: SomeEntity }, function() { return {}; }],
         profile: { type: 'object', using: profileEntity, default: {} }
       });
@@ -149,7 +149,7 @@ describe('Entity', function() {
     it('should add one field with :using option', function() {
       var infoEntity = new Entity({
         age: true,
-        sex: { default: 'male' }
+        sex: { type: 'string', default: 'male' }
       });
 
       var entity = new Entity({
@@ -268,8 +268,8 @@ describe('Entity', function() {
     it('should hide fields from exposure', function() {
       var entity = new Entity({
         name: true,
-        age: { default: 18 },
-        gender: { default: 'male' }
+        age: { type: 'number', default: 18 },
+        gender: { type: 'string', default: 'male' }
       });
 
       var obj1 = entity.parse({ name: 'felix' });
@@ -457,7 +457,7 @@ describe('Entity', function() {
       var obj1 = entity.parse({ name: 'felix' });
       expect(obj1).to.have.property('name', 'felix');
 
-      var inheritedEntity = Entity.extend(entity, { age: { default: 18 } })
+      var inheritedEntity = Entity.extend(entity, { age: { type: 'number', default: 18 } })
         .add('gender', { default: 'male' });
 
       var obj2 = inheritedEntity.parse({ name: 'felix' });

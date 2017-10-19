@@ -63,6 +63,33 @@ function _validateValue(val) {
 }
 
 /**
+ * @method Check whether a object is sub entity
+ * @param {true|String|Array|Object} obj
+ * @return {Boolean}
+ *
+ * @api private
+ */
+function _mightBeSubEntity(obj) {
+  if (obj === true || isFunction(obj)) return false;
+
+  var _obj;
+  if (Array.isArray(obj)) {
+    if (obj.length !== 1) return false;
+    if (obj.length === 1 && isObject(obj[0])) _obj = obj[0];
+  }
+
+  if (isObject(obj)) _obj = obj;
+
+  if (!_obj) return false;
+
+  if (!_obj.type) return true;
+
+  if (isString(_obj.type) || isString(_obj.type[0])) return false;
+
+  return true;
+}
+
+/**
  * @method Add fields definition for Entity object
  * @param {Object} object
  * @return {undefined}
@@ -72,7 +99,7 @@ function _validateValue(val) {
 function _addFields(object) {
   var propNames = Object.keys(object);
 
-  for(var i = 0; i < propNames.length; i++) {
+  for (var i = 0; i < propNames.length; i++) {
     var key = propNames[i];
 
     var value = object[key];
@@ -82,11 +109,19 @@ function _addFields(object) {
     );
 
     if (value === true) {
-      this.add(key);
-    } else if (Array.isArray(value)){
-      this.add.apply(this, [key].concat(value));
+      this.add(key, { type: 'any' });
+    } else if (isFunction(value)) {
+      this.add(key, { type: 'any' }, value);
     } else {
-      this.add.apply(this, [key, value]);
+      if (_mightBeSubEntity(value)) {
+        var _isArray = Array.isArray(value);
+        this.add.apply(this, [key, {
+          type: _isArray ? ['object'] : 'object',
+          using: new Entity(_isArray ? value[0] : value)
+        }]);
+      } else {
+        this.add.apply(this, [key].concat(value));
+      }
     }
   }
 }
@@ -301,15 +336,13 @@ Entity.prototype.isArray = function(obj) {
  * ####Example:
  *
  *     var entity = new Entity();
- *     entity.add('name');
- *     entity.add('name', { as: 'fullname' });
  *     entity.add('name', { type: 'string', as: 'fullname' });
- *     entity.add('age', { default: 0 });
- *     entity.add('sex', { value: 'male' });
+ *     entity.add('age', { type: 'number', default: 0 });
+ *     entity.add('sex', { type: 'string', value: 'male' });
  *     entity.add('isAdult', function(obj, options, key) { return obj && obj.age >= 18; });
- *     entity.add('activities', { using: myActivityEntity });
- *     entity.add('extraInfo', { using: myExtraInfoEntity });
- *     entity.add('condition', { if: function(obj, options, key) { return true } });
+ *     entity.add('activities', { type: ['object'], using: myActivityEntity });
+ *     entity.add('extraInfo', { type: 'object', using: myExtraInfoEntity });
+ *     entity.add('condition', { type: 'boolean', if: function(obj, options, key) { return true } });
  *
  * @return {Entity}
  *
