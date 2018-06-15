@@ -73,12 +73,13 @@ function _mightBeSubEntity(obj) {
   if (obj === true || isFunction(obj)) return false;
 
   var _obj;
+
+  if (isObject(obj)) _obj = obj;
+
   if (Array.isArray(obj)) {
     if (obj.length !== 1) return false;
     if (obj.length === 1 && isObject(obj[0])) _obj = obj[0];
   }
-
-  if (isObject(obj)) _obj = obj;
 
   if (!_obj) return false;
 
@@ -113,13 +114,23 @@ function _addFields(object) {
     } else if (isFunction(value)) {
       this.add(key, { type: 'any' }, value);
     } else {
-      if (_mightBeSubEntity(value)) {
-        var _isArray = Array.isArray(value);
+      const _isArray = Array.isArray(value);
+      const _isEntity = Entity.isEntity(_isArray ? value[0] : value);
+
+      if (_mightBeSubEntity(value) || _isEntity) {
         this.add.apply(this, [key, {
           type: _isArray ? ['object'] : 'object',
-          using: new Entity(_isArray ? value[0] : value)
+          using: _isEntity ? (_isArray ? value[0] : value) : new Entity(_isArray ? value[0] : value)
         }]);
       } else {
+
+        // [{ type: 'string' }] => { type: ['string] }
+        if (_isArray && value.length === 1 && isObject(value[0])) {
+          if (value[0].type && typeof value[0].type === 'string') {
+            value[0].type = [value[0].type];
+          }
+        }
+
         this.add.apply(this, [key].concat(value));
       }
     }
@@ -176,20 +187,21 @@ var _format = function(date, format) {
  * @api private
  * @desc convert 'id name profile(gender)' to { id: 1, name: 1, profile: { gender: 1 } }
  */
-var compile = function(str) {
+var compile = function (str) {
   str = str || '';
-  str = '(' + str + ')';
+  str = '{' + str + '}';
   str = str
     .replace(/\s/g, ' ')
-    .replace(/([^ \(\)]+)/g, '"$1"')
-    .replace(/\) */g, ' },')
+    .replace(/: +/g, ':')
+    .replace(/(:\w+) +/g, '$1,')
+    .replace(/([^ {}:,]+)/g, '"$1"')
+    .replace(/\} */g, ' },')
     .replace(/, \}/g, ',}')
-    .replace(/ *\( */g, ':{')
+    .replace(/ *\{ */g, ':{')
     .replace(/ +/g, ':1,')
-    .replace(/^\: */, '')
+    .replace(/^: */, '')
     .replace(/ *,$/, '')
-    .replace(/\, *\}/g, '}');
-
+    .replace(/, *\}/g, '}');
   return JSON.parse(str);
 };
 
@@ -369,6 +381,13 @@ Entity.prototype.add = function() {
       Object.assign(options, last);
     }
 
+    // extract `fn` from `options.get`
+    if (options.get) {
+      assert(isFunction(options.get), 'options.get must be function');
+      fn = options.get;
+      delete options.get;
+    }
+
     if (fields.length > 1) {
       assert(!options.as, 'using :as option on multi-fields exposure not allowed');
       assert(!fn, 'using function on multi-fields exposure not allowed');
@@ -411,6 +430,14 @@ Entity.prototype.add = function() {
     if (options.using) {
       assert(Entity.isEntity(options.using), 'using must be an Entity');
       using = options.using;
+    }
+
+
+    if (!using && !ifFn) {
+      const strType = Array.isArray(type) ? type[0] : type;
+      if (!~['string', 'number', 'object', 'date', 'boolean'].indexOf(strType)) {
+        throw new Error('missing type field or incorrect value');
+      }
     }
 
     if (options.as) {
