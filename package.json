@@ -23,7 +23,8 @@
   "homepage": "https://github.com/baijijs/entity#readme",
   "dependencies": {
     "baiji-normalizer": "^1.0.7",
-    "debug": "^2.6.8"
+    "debug": "^2.6.8",
+    "stoc": "^1.0.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",

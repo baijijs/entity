@@ -7,6 +7,7 @@ module.exports = Entity;
  * Module dependencies
  */
 var Normalizer = require('baiji-normalizer');
+var stoc = require('stoc');
 var assert = require('assert');
 var debug = require('debug')('baiji:entity');
 
@@ -177,32 +178,6 @@ var _format = function(date, format) {
       break;
   }
   return date;
-};
-
-/**
- * @method Compile str to javascript object
- * @param {String} str
- * @return {Object} obj
- *
- * @api private
- * @desc convert 'id name profile(gender)' to { id: 1, name: 1, profile: { gender: 1 } }
- */
-var compile = function (str) {
-  str = str || '';
-  str = '{' + str + '}';
-  str = str
-    .replace(/\s/g, ' ')
-    .replace(/: +/g, ':')
-    .replace(/(:\w+) +/g, '$1,')
-    .replace(/([^ {}:,]+)/g, '"$1"')
-    .replace(/\} */g, ' },')
-    .replace(/, \}/g, ',}')
-    .replace(/ *\{ */g, ':{')
-    .replace(/ +/g, ':1,')
-    .replace(/^: */, '')
-    .replace(/ *,$/, '')
-    .replace(/, *\}/g, '}');
-  return JSON.parse(str);
 };
 
 /**
@@ -582,7 +557,7 @@ Entity.prototype.parse = function(obj, options, converter) {
   }
 
   if (isString(options.fields)) {
-    options.fields = compile(options.fields);
+    options.fields = stoc(options.fields);
   } else if (!isObject(options.fields) || !options.fields) {
     options.fields = Object.create(null);
   }
