@@ -136,14 +136,15 @@ describe('Entity', function() {
         name: { type: 'string' },
         info: {
           age: { type: 'number' },
-          gender: { type: 'string' }
+          gender: { type: 'string' },
+          type: { type: 'string' }
         }
       });
-      const obj1 = { name: 'felix', info: { age: 18, gender: 'male' } };
+      const obj1 = { name: 'felix', info: { age: 18, gender: 'male', type: 'a' } };
       const obj2 = entity1.parse(obj1);
       assert.deepEqual(obj1, obj2);
 
-      const obj3 = entity1.parse({ name: 'felix', info: { age: 18, gender: 'male', sex: 1 }, nickname: 'whatever' });
+      const obj3 = entity1.parse({ name: 'felix', info: { age: 18, gender: 'male', type: 'a', sex: 1 }, nickname: 'whatever' });
       assert.deepEqual(obj1, obj3);
 
       const entity2 = new Entity({
