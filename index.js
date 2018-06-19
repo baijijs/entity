@@ -526,6 +526,59 @@ Entity.prototype.unexpose = Entity.prototype.remove;
  */
 Entity.prototype.safeExpose = Entity.prototype.safeAdd;
 
+
+/**
+ * pick fields from entity
+ * @param {Object|String} fields
+ * @return {Entity}
+ */
+Entity.prototype.pick = function(fields) {
+
+  // null and undefined => {}
+  if (fields == null) fields = {};
+
+  if (isString(fields)) {
+    try {
+      fields = stoc(fields);
+    } catch(e) {
+      throw new Error('failed parse string to object');
+    }
+  }
+
+  if (!isObject(fields)) throw new Error('only accept object or string param');
+
+  const keys = Object.keys(fields);
+  if (!keys.length) {
+    return this.clone();
+  } else {
+    const newEntity = new Entity();
+    keys.forEach(key => {
+      let fieldVal = this._mappings[key];
+
+      if (fieldVal) {
+        fieldVal = Object.assign({}, fieldVal);
+
+        // sub-entity
+        if (fieldVal.using) {
+          assert(Entity.isEntity(fieldVal.using), 'using must be an Entity');
+          fieldVal.using = fieldVal.using.pick(typeof fields[key] !== 'object' ? {} : fields[key]);
+        }
+
+        // change key's name
+        const newKey = fields[key];
+        if (typeof newKey === 'string') key = newKey;
+
+        newEntity._mappings[key] = fieldVal;
+      } else {
+        throw new Error('confirm pick current fields');
+      }
+    });
+    newEntity._keys = Object.keys(newEntity._mappings);
+    return newEntity;
+  }
+};
+
+
 /**
  * @method Parse input object according to Entity exposure definition
  * @param {Object} obj
