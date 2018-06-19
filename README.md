@@ -26,12 +26,29 @@ The object's key and value pairs are the same as field and options pairs from .a
 const Entity = require('baiji-entity');
 
 let entity = new Entity({
-  name: true,
-  sex: { as: 'gender' },
-  age: { default: 18 },
-  isAdult: function(obj) { return obj.age >= 18 ? true : false; },
-  girlfriend: { default: true, if: function(obj) { return obj.age >= 16 ? true : false; } },
-  social: { using: SomeEntity }, function(obj, options) { return {}; }
+  name: { type: 'string' },
+  sex: { type: 'number', as: 'gender' },
+  age: { type: 'number', default: 18 },
+  isAdult: {
+    type: 'boolean',
+    get(obj) {
+      return obj.age >= 18 ? true : false;
+    }
+  },
+  girlfriend: {
+    type: 'boolean',
+    default: true,
+    if: function(obj) {
+      return obj.age >= 16 ? true : false;
+    }
+  },
+  social: {
+    type: 'object',
+    using: SomeEntity,
+    get(obj, options) {
+      return {};
+    }
+  }
 });
 ```
 
@@ -81,16 +98,17 @@ Options:
   - format: only applied for valid Date value, which automatically turn type option to `string`, now support format of `iso` and `timestamp`, case ignored
   - if: set a filter to determine if the field should be return, accept an object and return boolean
   - using: use another Entity instance as the filed value
+  - get: function, for further manipulation of inputed object according to options
 
 fn optional, for further manipulation of inputed object according to options
 
 ``` javascript
 let entity = new Entity();
-entity.add('name');
-entity.add('name', { as: 'fullname' });
+entity.add('name', { type: 'string' });
 entity.add('name', { type: 'string', as: 'fullname' });
-entity.add('sex', { value: 'male' });
-entity.add('isAdult', function(obj) { return obj && obj.age >= 18; });
+entity.add('sex', { type: 'number', value: 'male' });
+entity.add('isAdult', { type: 'boolean' }, function(obj) { return obj && obj.age >= 18; });
+entity.add('isAdult', { type: 'boolean', get(obj) { return obj && obj.age >= 18; } });
 entity.add('activities', { using: myActivityEntity });
 entity.add('extraInfo', { using: myExtraInfoEntity });
 entity.add('condition', { if: function(obj, options) { return true } });
@@ -120,17 +138,20 @@ const Entity = require('baiji-entity');
 
 // Define userEntity
 let userEntity = new Entity({
-  name: true,
+  name: { type: 'string' },
   city: { type: 'string' },
   age: { type: 'number', default: 0 },
   gender: { type: 'string', default: 'unknown' },
   isAdult: [{ type: 'boolean', default: false }, function(obj, options) {
     return (obj && obj.age >= 18 ? true : false);
   }],
-  points: { value: 100, if: function(obj, options) { return obj && obj.age >= 18; } },
+  points: { type: 'number', value: 100, if: function(obj, options) { return obj && obj.age >= 18; } },
   description: { as: 'introduction', type: 'string', default: '' },
-  isSignedIn: function(obj, options) {
-    return (options && options.isSignedIn ? true : false);
+  isSignedIn: {
+    type: 'boolean',
+    get(obj, options) {
+      return (options && options.isSignedIn ? true : false);
+    }
   },
   birthday: { default: '', type: 'date', format: 'iso' }
 });
@@ -149,14 +170,14 @@ userEntity.parse({
 
 {
   name: 'Felix Liu',
-  age: 18,
   city: 'Shanghai',
+  age: 18,
   gender: 'unknown',
   isAdult: true,
   points: 100,
-  birthday: '2015-10-10T02:00:00.000Z',
-  introduction: 'A programmer who lives in Shanghai'
-  isSignedIn: false
+  introduction: 'A programmer who lives in Shanghai',
+  isSignedIn: true,
+  birthday: '2015-10-10T02:00:00.000Z'
 }
 ```
 
