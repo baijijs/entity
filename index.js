@@ -377,6 +377,7 @@ Entity.prototype.add = function() {
     var format = undefined;
     var using = undefined;
     var ifFn = undefined;
+    var example = undefined;
 
     assert(isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), 'field ' + field + ' must be a string');
     assert(!(options.as && fn), 'using :as option with function not allowed');
@@ -390,6 +391,10 @@ Entity.prototype.add = function() {
     }
 
     defaultVal = options.hasOwnProperty('default') ? options.default : defaultVal;
+
+    if (options.example) {
+      example = options.example;
+    }
 
     if (options.format) {
       assert(/^iso$|^timestamp$/i.test(options.format), 'format must be one of ["iso", "timestamp"] value, case ignored');
@@ -436,7 +441,8 @@ Entity.prototype.add = function() {
       default: defaultVal,
       format: format,
       if: ifFn,
-      using: using
+      using: using,
+      example: example
     };
   });
 
@@ -697,4 +703,53 @@ Entity.prototype.parse = function(obj, options, converter) {
       return result;
     }
   }
+};
+
+
+/**
+ * output example object
+ * @return {Object} plain object
+ */
+Entity.prototype.toExample = function() {
+  const obj = {};
+  const _mappings = this._mappings;
+
+  this._keys.forEach(key => {
+    const field = _mappings[key];
+
+    let type = field.type;
+    const _isArray = Array.isArray(type);
+
+    if (field.using) {
+      let val = field.using.toExample();
+      if (_isArray) val = [val];
+      obj[key] = val;
+      return;
+    }
+
+    let val = field.example;
+    if (val === undefined) {
+      val = field.default;
+      if (val === undefined) {
+        if (_isArray) type = type[0];
+
+        if (field.format) type = 'date';
+
+        val = ({
+          string: '',
+          number: 0,
+          object: null,
+          date: new Date(),
+          boolean: false,
+        })[type];
+
+        val = isDate(val) && field.format ? _format(val, field.format) : val;
+
+        if (_isArray) val = [val];
+      }
+    }
+    obj[key] = val;
+  });
+
+  return obj;
 };

@@ -670,4 +670,26 @@ describe('Entity', function() {
       assert.deepEqual(obj6, { children: [{ uid: 1, name: 'first' }, { uid: 2, name: 'second' }] });
     });
   });
+
+  describe('#toExample()', function() {
+    it('should work', function() {
+      const entity = new Entity({
+        name: { type: 'string' },
+        age: { type: 'number', default: 3 },
+        gender: { type: 'number', example: 1 },
+        birthday: { type: 'date', format: 'iso' },
+        children: [{
+          id: { type: 'string', default: 'a', example: 'b' },
+          name: { type: 'string', example: 'name' },
+        }]
+      });
+
+      const obj = entity.toExample();
+      expect(obj).to.have.property('name', '');
+      expect(obj).to.have.property('age', 3);
+      expect(obj).to.have.property('gender', 1);
+      expect(obj).to.have.property('birthday');
+      assert.deepEqual(obj.children, [{ id: 'b', name: 'name' }]);
+    });
+  });
 });
