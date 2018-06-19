@@ -180,6 +180,34 @@ describe('Entity', function() {
       var obj3 = entity2.parse(obj2);
       assert.deepEqual(obj2, obj3);
     });
+
+    it('sub-entity default value should be null', function() {
+      var childEntity = new Entity({
+        id: { type: 'string' },
+        name: { type: 'string' }
+      });
+      var entity = new Entity({
+        name: { type: 'string' },
+        child: childEntity
+      });
+
+      var obj = { name: 'liqiang' };
+      assert(entity.parse(obj).child === null);
+    });
+
+    it('array sub-entity default value should be []', function() {
+      var childEntity = new Entity({
+        id: { type: 'string' },
+        name: { type: 'string' }
+      });
+      var entity = new Entity({
+        name: { type: 'string' },
+        children: [childEntity]
+      });
+
+      var obj = { name: 'liqiang' };
+      assert.deepEqual(entity.parse(obj), { name: 'liqiang', children: [] });
+    });
   });
 
   describe('#isEntity(obj)', function() {

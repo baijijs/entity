@@ -84,7 +84,7 @@ function _mightBeSubEntity(obj) {
 
   if (!_obj) return false;
 
-  if (obj.using && Entity.isEntity(obj.using)) return false;
+  if (_obj.using && Entity.isEntity(_obj.using)) return false;
 
   if (!_obj.type) return true;
 
@@ -123,7 +123,8 @@ function _addFields(object) {
       if (_mightBeSubEntity(value) || _isEntity) {
         this.add.apply(this, [key, {
           type: _isArray ? ['object'] : 'object',
-          using: _isEntity ? (_isArray ? value[0] : value) : new Entity(_isArray ? value[0] : value)
+          using: _isEntity ? (_isArray ? value[0] : value) : new Entity(_isArray ? value[0] : value),
+          default: _isArray ? [] : null
         }]);
       } else {
 
