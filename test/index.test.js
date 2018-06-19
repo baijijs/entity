@@ -86,14 +86,14 @@ describe('Entity', function() {
     });
 
     it('should support options.get param', function() {
-      const entity = new Entity({
+      var entity = new Entity({
         name: { type: 'string' },
         age: { type: 'number' },
         isAdult: { type: 'boolean', get(obj) {
           return obj.age >= 18 ? true : false;
         } }
       });
-      const obj1 = entity.parse({
+      var obj1 = entity.parse({
         name: 'felix',
         age: 24,
       });
@@ -103,7 +103,7 @@ describe('Entity', function() {
         isAdult: true
       });
 
-      const obj2 = entity.parse({
+      var obj2 = entity.parse({
         name: 'felix',
         age: 17,
       });
@@ -115,24 +115,24 @@ describe('Entity', function() {
     });
 
     it('should support difference array config', function() {
-      const entity1 = new Entity({
+      var entity1 = new Entity({
         name: { type: 'string' },
         friends: { type: ['string'] }
       });
-      const obj = { name: 'felix', friends: ['liqiang', 'wangtao'] };
-      const obj1 = entity1.parse(obj);
+      var obj = { name: 'felix', friends: ['liqiang', 'wangtao'] };
+      var obj1 = entity1.parse(obj);
       assert.deepEqual(obj1, obj);
 
-      const entity2 = new Entity({
+      var entity2 = new Entity({
         name: { type: 'string' },
         friends: [{ type: 'string' }]
       });
-      const obj2 = entity2.parse(obj);
+      var obj2 = entity2.parse(obj);
       assert.deepEqual(obj2, obj);
     });
 
     it('simplify sub-entity', function() {
-      const entity1 = new Entity({
+      var entity1 = new Entity({
         name: { type: 'string' },
         info: {
           age: { type: 'number' },
@@ -140,44 +140,44 @@ describe('Entity', function() {
           type: { type: 'string' }
         }
       });
-      const obj1 = { name: 'felix', info: { age: 18, gender: 'male', type: 'a' } };
-      const obj2 = entity1.parse(obj1);
+      var obj1 = { name: 'felix', info: { age: 18, gender: 'male', type: 'a' } };
+      var obj2 = entity1.parse(obj1);
       assert.deepEqual(obj1, obj2);
 
-      const obj3 = entity1.parse({ name: 'felix', info: { age: 18, gender: 'male', type: 'a', sex: 1 }, nickname: 'whatever' });
+      var obj3 = entity1.parse({ name: 'felix', info: { age: 18, gender: 'male', type: 'a', sex: 1 }, nickname: 'whatever' });
       assert.deepEqual(obj1, obj3);
 
-      const entity2 = new Entity({
+      var entity2 = new Entity({
         name: { type: 'string' },
         friends: [{
           name: { type: 'string' },
           age: { type: 'number' }
         }]
       });
-      const obj4 = { name: 'felix', friends: [{ name: 'liqiang', age: 18 }, { name: 'wangtao', age: 18 }] };
-      const obj5 = entity2.parse(obj4);
+      var obj4 = { name: 'felix', friends: [{ name: 'liqiang', age: 18 }, { name: 'wangtao', age: 18 }] };
+      var obj5 = entity2.parse(obj4);
       assert.deepEqual(obj4, obj5);
 
-      const obj6 = entity2.parse({ name: 'felix', friends: [{ name: 'liqiang', age: 18, nickname: 'a' }, { name: 'wangtao', age: 18, nickname: 'a' }], nickname: 'a' });
+      var obj6 = entity2.parse({ name: 'felix', friends: [{ name: 'liqiang', age: 18, nickname: 'a' }, { name: 'wangtao', age: 18, nickname: 'a' }], nickname: 'a' });
       assert.deepEqual(obj4, obj6);
     });
 
     it('using sub-entity directly', function() {
-      const childEntity = new Entity({ id: { type: 'number' }, name: { type: 'string' } });
-      const entity = new Entity({
+      var childEntity = new Entity({ id: { type: 'number' }, name: { type: 'string' } });
+      var entity = new Entity({
         nickname: { type: 'string' },
         child: childEntity
       });
-      const obj = { nickname: 'felix', child: { id: 1, name: 'a' } };
-      const obj1 = entity.parse(obj);
+      var obj = { nickname: 'felix', child: { id: 1, name: 'a' } };
+      var obj1 = entity.parse(obj);
       assert.deepEqual(obj, obj1);
 
-      const entity2 = new Entity({
+      var entity2 = new Entity({
         nickname: { type: 'string' },
         child: [childEntity]
       });
-      const obj2 = { nickname: 'felix', child: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }] };
-      const obj3 = entity2.parse(obj2);
+      var obj2 = { nickname: 'felix', child: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }] };
+      var obj3 = entity2.parse(obj2);
       assert.deepEqual(obj2, obj3);
     });
   });
@@ -354,13 +354,13 @@ describe('Entity', function() {
     });
 
     it('should throw an error when ignore type field', function() {
-      const fn = function() {
+      var fn = function() {
         SomeEntity.add('name', {});
       };
       expect(fn).to.throw(Error);
 
       SomeOtherEntity.add('name', { type: 'string' });
-      const obj = SomeOtherEntity.parse({ name: 'felix', age: 18 });
+      var obj = SomeOtherEntity.parse({ name: 'felix', age: 18 });
       assert.deepEqual(obj, { name: 'felix' });
     });
   });
@@ -578,55 +578,55 @@ describe('Entity', function() {
 
   describe('#pick()', function() {
     it('should create a new Entity only contain specified fields', function() {
-      const entity = new Entity({
+      var entity = new Entity({
         name: { type: 'string' },
         age: { type: 'number' }
       });
-      const pickedEntity1 = entity.pick('name');
-      const pickedEntity2 = entity.pick({ name: 1 });
+      var pickedEntity1 = entity.pick('name');
+      var pickedEntity2 = entity.pick({ name: 1 });
 
-      const rawObj = { name: 'liqiang', age: 25 };
-      const obj = entity.parse(rawObj);
-      const obj1 = pickedEntity1.parse(rawObj);
-      const obj2 = pickedEntity2.parse(rawObj);
+      var rawObj = { name: 'liqiang', age: 25 };
+      var obj = entity.parse(rawObj);
+      var obj1 = pickedEntity1.parse(rawObj);
+      var obj2 = pickedEntity2.parse(rawObj);
 
       assert.deepEqual(obj, { name: 'liqiang', age: 25 });
       assert.deepEqual(obj1, { name: 'liqiang' });
       assert.deepEqual(obj2, { name: 'liqiang' });
 
-      const pickedEntity3 = entity.pick();
-      const obj3 = pickedEntity3.parse(rawObj);
+      var pickedEntity3 = entity.pick();
+      var obj3 = pickedEntity3.parse(rawObj);
       assert.deepEqual(obj3, rawObj);
 
-      const pickedEntity4 = entity.pick('name age');
-      const obj4 = pickedEntity4.parse(rawObj);
+      var pickedEntity4 = entity.pick('name age');
+      var obj4 = pickedEntity4.parse(rawObj);
       assert.deepEqual(obj4, rawObj);
     });
 
     it('should throw an error if pick fields not exist', function () {
       function pick() {
-        const entity = new Entity({
+        var entity = new Entity({
           name: { type: 'string' },
           age: { type: 'number' }
         });
-        const newEntity = entity.pick('name sex');
+        var newEntity = entity.pick('name sex');
       }
 
       expect(pick).to.throw(Error);
     });
 
     it('could change key\'s name', function() {
-      const entity = new Entity({
+      var entity = new Entity({
         name: { type: 'string' },
         age: { type: 'number' }
       });
-      const pickedEntity1 = entity.pick('name: nickname');
-      const pickedEntity2 = entity.pick({ name: 'nickname' });
+      var pickedEntity1 = entity.pick('name: nickname');
+      var pickedEntity2 = entity.pick({ name: 'nickname' });
 
-      const rawObj = { name: 'liqiang', age: 25 };
-      const obj = entity.parse(rawObj);
-      const obj1 = pickedEntity1.parse(rawObj);
-      const obj2 = pickedEntity2.parse(rawObj);
+      var rawObj = { name: 'liqiang', age: 25 };
+      var obj = entity.parse(rawObj);
+      var obj1 = pickedEntity1.parse(rawObj);
+      var obj2 = pickedEntity2.parse(rawObj);
 
       assert.deepEqual(obj, { name: 'liqiang', age: 25 });
       assert.deepEqual(obj1, { nickname: 'liqiang' });
@@ -634,46 +634,46 @@ describe('Entity', function() {
     });
 
     it('should support sub-entity', function() {
-      const entity = new Entity({
+      var entity = new Entity({
         name: { type: 'string' },
         children: [{
           id: { type: 'number' },
           name: { type: 'string' }
         }]
       });
-      const pickedEntity1 = entity.pick('children');
-      const pickedEntity2 = entity.pick({ children: 1 });
+      var pickedEntity1 = entity.pick('children');
+      var pickedEntity2 = entity.pick({ children: 1 });
 
-      const rawObj = { name: 'liqiang', children: [{ id: 1, name: 'first' }, {id: 2, name: 'second' }] };
-      const obj1 = pickedEntity1.parse(rawObj);
-      const obj2 = pickedEntity2.parse(rawObj);
+      var rawObj = { name: 'liqiang', children: [{ id: 1, name: 'first' }, {id: 2, name: 'second' }] };
+      var obj1 = pickedEntity1.parse(rawObj);
+      var obj2 = pickedEntity2.parse(rawObj);
 
       assert.deepEqual(obj1, obj2);
       assert.deepEqual(obj1, { children: [{ id: 1, name: 'first' }, { id: 2, name: 'second' }] });
 
 
-      const pickedEntity3 = entity.pick('children{id}');
-      const pickedEntity4 = entity.pick({ children: { id: 1 } });
+      var pickedEntity3 = entity.pick('children{id}');
+      var pickedEntity4 = entity.pick({ children: { id: 1 } });
 
-      const obj3 = pickedEntity3.parse(rawObj);
-      const obj4 = pickedEntity4.parse(rawObj);
+      var obj3 = pickedEntity3.parse(rawObj);
+      var obj4 = pickedEntity4.parse(rawObj);
 
       assert.deepEqual(obj3, obj4);
       assert.deepEqual(obj3, { children: [{ id: 1 }, { id: 2 }] });
 
-      const pickedEntity5 = entity.pick('children: child');
-      const obj5 = pickedEntity5.parse(rawObj);
+      var pickedEntity5 = entity.pick('children: child');
+      var obj5 = pickedEntity5.parse(rawObj);
       assert.deepEqual(obj5, { child: [{ id: 1, name: 'first' }, { id: 2, name: 'second' }] });
 
-      const pickedEntity6 = entity.pick('children{id: uid name}');
-      const obj6 = pickedEntity6.parse(rawObj);
+      var pickedEntity6 = entity.pick('children{id: uid name}');
+      var obj6 = pickedEntity6.parse(rawObj);
       assert.deepEqual(obj6, { children: [{ uid: 1, name: 'first' }, { uid: 2, name: 'second' }] });
     });
   });
 
   describe('#toExample()', function() {
     it('should work', function() {
-      const entity = new Entity({
+      var entity = new Entity({
         name: { type: 'string' },
         age: { type: 'number', default: 3 },
         gender: { type: 'number', example: 1 },
@@ -684,7 +684,7 @@ describe('Entity', function() {
         }]
       });
 
-      const obj = entity.toExample();
+      var obj = entity.toExample();
       expect(obj).to.have.property('name', '');
       expect(obj).to.have.property('age', 3);
       expect(obj).to.have.property('gender', 1);

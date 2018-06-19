@@ -117,8 +117,8 @@ function _addFields(object) {
     } else if (isFunction(value)) {
       this.add(key, { type: 'any' }, value);
     } else {
-      const _isArray = Array.isArray(value);
-      const _isEntity = Entity.isEntity(_isArray ? value[0] : value);
+      var _isArray = Array.isArray(value);
+      var _isEntity = Entity.isEntity(_isArray ? value[0] : value);
 
       if (_mightBeSubEntity(value) || _isEntity) {
         this.add.apply(this, [key, {
@@ -416,7 +416,7 @@ Entity.prototype.add = function() {
 
 
     if (!using && !ifFn) {
-      const strType = Array.isArray(type) ? type[0] : type;
+      var strType = Array.isArray(type) ? type[0] : type;
       if (!~['string', 'number', 'object', 'date', 'boolean'].indexOf(strType)) {
         throw new Error(`field ${field} missing type field or incorrect value`);
       }
@@ -555,13 +555,13 @@ Entity.prototype.pick = function(fields) {
 
   if (!isObject(fields)) throw new Error('only accept object or string param');
 
-  const keys = Object.keys(fields);
+  var keys = Object.keys(fields);
   if (!keys.length) {
     return this.clone();
   } else {
-    const newEntity = new Entity();
+    var newEntity = new Entity();
     keys.forEach(key => {
-      let fieldVal = this._mappings[key];
+      var fieldVal = this._mappings[key];
 
       if (fieldVal) {
         fieldVal = Object.assign({}, fieldVal);
@@ -573,7 +573,7 @@ Entity.prototype.pick = function(fields) {
         }
 
         // change key's name
-        const newKey = fields[key];
+        var newKey = fields[key];
         if (typeof newKey === 'string') key = newKey;
 
         newEntity._mappings[key] = fieldVal;
@@ -713,23 +713,23 @@ Entity.prototype.parse = function(obj, options, converter) {
  * @return {Object} plain object
  */
 Entity.prototype.toExample = function() {
-  const obj = {};
-  const _mappings = this._mappings;
+  var obj = {};
+  var _mappings = this._mappings;
 
   this._keys.forEach(key => {
-    const field = _mappings[key];
+    var field = _mappings[key];
 
-    let type = field.type;
-    const _isArray = Array.isArray(type);
+    var type = field.type;
+    var _isArray = Array.isArray(type);
 
     if (field.using) {
-      let val = field.using.toExample();
+      var val = field.using.toExample();
       if (_isArray) val = [val];
       obj[key] = val;
       return;
     }
 
-    let val = field.example;
+    var val = field.example;
     if (val === undefined) {
       val = field.default;
       if (val === undefined) {
