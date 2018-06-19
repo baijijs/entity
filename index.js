@@ -84,6 +84,8 @@ function _mightBeSubEntity(obj) {
 
   if (!_obj) return false;
 
+  if (obj.using && Entity.isEntity(obj.using)) return false;
+
   if (!_obj.type) return true;
 
   if (isString(_obj.type) || isString(_obj.type[0])) return false;
@@ -416,7 +418,7 @@ Entity.prototype.add = function() {
     if (!using && !ifFn) {
       const strType = Array.isArray(type) ? type[0] : type;
       if (!~['string', 'number', 'object', 'date', 'boolean'].indexOf(strType)) {
-        throw new Error('missing type field or incorrect value');
+        throw new Error(`field ${field} missing type field or incorrect value`);
       }
     }
 
