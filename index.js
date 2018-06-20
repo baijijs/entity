@@ -7,6 +7,7 @@ module.exports = Entity;
  * Module dependencies
  */
 var Normalizer = require('baiji-normalizer');
+var stoc = require('stoc');
 var assert = require('assert');
 var debug = require('debug')('baiji:entity');
 
@@ -73,14 +74,17 @@ function _mightBeSubEntity(obj) {
   if (obj === true || isFunction(obj)) return false;
 
   var _obj;
+
+  if (isObject(obj)) _obj = obj;
+
   if (Array.isArray(obj)) {
     if (obj.length !== 1) return false;
     if (obj.length === 1 && isObject(obj[0])) _obj = obj[0];
   }
 
-  if (isObject(obj)) _obj = obj;
-
   if (!_obj) return false;
+
+  if (_obj.using && Entity.isEntity(_obj.using)) return false;
 
   if (!_obj.type) return true;
 
@@ -113,13 +117,24 @@ function _addFields(object) {
     } else if (isFunction(value)) {
       this.add(key, { type: 'any' }, value);
     } else {
-      if (_mightBeSubEntity(value)) {
-        var _isArray = Array.isArray(value);
+      var _isArray = Array.isArray(value);
+      var _isEntity = Entity.isEntity(_isArray ? value[0] : value);
+
+      if (_mightBeSubEntity(value) || _isEntity) {
         this.add.apply(this, [key, {
           type: _isArray ? ['object'] : 'object',
-          using: new Entity(_isArray ? value[0] : value)
+          using: _isEntity ? (_isArray ? value[0] : value) : new Entity(_isArray ? value[0] : value),
+          default: _isArray ? [] : null
         }]);
       } else {
+
+        // [{ type: 'string' }] => { type: ['string] }
+        if (_isArray && value.length === 1 && isObject(value[0])) {
+          if (value[0].type && typeof value[0].type === 'string') {
+            value[0].type = [value[0].type];
+          }
+        }
+
         this.add.apply(this, [key].concat(value));
       }
     }
@@ -166,31 +181,6 @@ var _format = function(date, format) {
       break;
   }
   return date;
-};
-
-/**
- * @method Compile str to javascript object
- * @param {String} str
- * @return {Object} obj
- *
- * @api private
- * @desc convert 'id name profile(gender)' to { id: 1, name: 1, profile: { gender: 1 } }
- */
-var compile = function(str) {
-  str = str || '';
-  str = '(' + str + ')';
-  str = str
-    .replace(/\s/g, ' ')
-    .replace(/([^ \(\)]+)/g, '"$1"')
-    .replace(/\) */g, ' },')
-    .replace(/, \}/g, ',}')
-    .replace(/ *\( */g, ':{')
-    .replace(/ +/g, ':1,')
-    .replace(/^\: */, '')
-    .replace(/ *,$/, '')
-    .replace(/\, *\}/g, '}');
-
-  return JSON.parse(str);
 };
 
 /**
@@ -369,6 +359,13 @@ Entity.prototype.add = function() {
       Object.assign(options, last);
     }
 
+    // extract `fn` from `options.get`
+    if (options.get) {
+      assert(isFunction(options.get), 'options.get must be function');
+      fn = options.get;
+      delete options.get;
+    }
+
     if (fields.length > 1) {
       assert(!options.as, 'using :as option on multi-fields exposure not allowed');
       assert(!fn, 'using function on multi-fields exposure not allowed');
@@ -383,6 +380,7 @@ Entity.prototype.add = function() {
     var format = undefined;
     var using = undefined;
     var ifFn = undefined;
+    var example = undefined;
 
     assert(isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), 'field ' + field + ' must be a string');
     assert(!(options.as && fn), 'using :as option with function not allowed');
@@ -396,6 +394,10 @@ Entity.prototype.add = function() {
     }
 
     defaultVal = options.hasOwnProperty('default') ? options.default : defaultVal;
+
+    if (options.example) {
+      example = options.example;
+    }
 
     if (options.format) {
       assert(/^iso$|^timestamp$/i.test(options.format), 'format must be one of ["iso", "timestamp"] value, case ignored');
@@ -411,6 +413,14 @@ Entity.prototype.add = function() {
     if (options.using) {
       assert(Entity.isEntity(options.using), 'using must be an Entity');
       using = options.using;
+    }
+
+
+    if (!using && !ifFn) {
+      var strType = Array.isArray(type) ? type[0] : type;
+      if (!~['string', 'number', 'object', 'date', 'boolean'].indexOf(strType)) {
+        throw new Error(`field ${field} missing type field or incorrect value`);
+      }
     }
 
     if (options.as) {
@@ -434,7 +444,8 @@ Entity.prototype.add = function() {
       default: defaultVal,
       format: format,
       if: ifFn,
-      using: using
+      using: using,
+      example: example
     };
   });
 
@@ -524,6 +535,59 @@ Entity.prototype.unexpose = Entity.prototype.remove;
  */
 Entity.prototype.safeExpose = Entity.prototype.safeAdd;
 
+
+/**
+ * pick fields from entity
+ * @param {Object|String} fields
+ * @return {Entity}
+ */
+Entity.prototype.pick = function(fields) {
+
+  // null and undefined => {}
+  if (fields == null) fields = {};
+
+  if (isString(fields)) {
+    try {
+      fields = stoc(fields);
+    } catch(e) {
+      throw new Error('failed parse string to object');
+    }
+  }
+
+  if (!isObject(fields)) throw new Error('only accept object or string param');
+
+  var keys = Object.keys(fields);
+  if (!keys.length) {
+    return this.clone();
+  } else {
+    var newEntity = new Entity();
+    keys.forEach(key => {
+      var fieldVal = this._mappings[key];
+
+      if (fieldVal) {
+        fieldVal = Object.assign({}, fieldVal);
+
+        // sub-entity
+        if (fieldVal.using) {
+          assert(Entity.isEntity(fieldVal.using), 'using must be an Entity');
+          fieldVal.using = fieldVal.using.pick(typeof fields[key] !== 'object' ? {} : fields[key]);
+        }
+
+        // change key's name
+        var newKey = fields[key];
+        if (typeof newKey === 'string') key = newKey;
+
+        newEntity._mappings[key] = fieldVal;
+      } else {
+        throw new Error('confirm pick current fields');
+      }
+    });
+    newEntity._keys = Object.keys(newEntity._mappings);
+    return newEntity;
+  }
+};
+
+
 /**
  * @method Parse input object according to Entity exposure definition
  * @param {Object} obj
@@ -555,7 +619,7 @@ Entity.prototype.parse = function(obj, options, converter) {
   }
 
   if (isString(options.fields)) {
-    options.fields = compile(options.fields);
+    options.fields = stoc(options.fields);
   } else if (!isObject(options.fields) || !options.fields) {
     options.fields = Object.create(null);
   }
@@ -642,4 +706,54 @@ Entity.prototype.parse = function(obj, options, converter) {
       return result;
     }
   }
+};
+
+
+/**
+ * output example object
+ * @return {Object} plain object
+ */
+Entity.prototype.toExample = function() {
+  var obj = {};
+  var _mappings = this._mappings;
+
+  this._keys.forEach(key => {
+    var field = _mappings[key];
+
+    var type = field.type;
+    var _isArray = Array.isArray(type);
+    var val;
+
+    if (field.using) {
+      val = field.using.toExample();
+      if (_isArray) val = [val];
+      obj[key] = val;
+      return;
+    }
+
+    val = field.example;
+    if (val === undefined) {
+      val = field.default;
+      if (val === undefined) {
+        if (_isArray) type = type[0];
+
+        if (field.format) type = 'date';
+
+        val = ({
+          string: '',
+          number: 0,
+          object: null,
+          date: new Date(),
+          boolean: false,
+        })[type];
+
+        val = isDate(val) && field.format ? _format(val, field.format) : val;
+
+        if (_isArray) val = [val];
+      }
+    }
+    obj[key] = val;
+  });
+
+  return obj;
 };

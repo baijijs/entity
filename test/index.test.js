@@ -1,5 +1,6 @@
 var util = require('util');
 var chai = require('chai');
+var assert = require('assert');
 var expect = chai.expect;
 
 var Entity = require('../');
@@ -21,10 +22,10 @@ describe('Entity', function() {
       });
 
       var entity = new Entity({
-        name: true,
+        name: { type: 'string' },
         sex: { type: 'string', as: 'gender' },
         age: { type: 'number', default: 16 },
-        isAdult: function(obj) { return obj.age >= 18 ? true : false; },
+        isAdult: [{ type: 'boolean' }, function(obj) { return obj.age >= 18 ? true : false; }],
         girlfriend: { type: 'boolean', default: true, if: function(obj) { return obj.age >= 16 ? true : false; } },
         social: [{ using: SomeEntity }, function() { return {}; }],
         profile: { type: 'object', using: profileEntity, default: {} }
@@ -35,7 +36,7 @@ describe('Entity', function() {
       var obj3 = entity.parse({ name: 'felix', sex: 'male' }, { overwrite: true });
       var obj4 = entity.parse(
         { name: 'felix', sex: 'male', profile: { location: 'nowhere' } },
-        { fields: 'name profile(location)' }
+        { fields: 'name profile{location}' }
       );
 
       expect(obj1).to.have.property('name', 'felix');
@@ -61,10 +62,10 @@ describe('Entity', function() {
 
     it('should be able to chain initialization with add method', function() {
       var entity = new Entity({
-        name: true
+        name: { type: 'string' }
       })
-      .add('sex', { as: 'gender' })
-      .add('age', { default: 16 });
+      .add('sex', { type: 'string', as: 'gender' })
+      .add('age', { type: 'number', default: 16 });
 
       var obj = entity.parse({ name: 'felix', sex: 'male' });
 
@@ -82,6 +83,190 @@ describe('Entity', function() {
       }
 
       expect(initialize).to.throw(Error);
+    });
+
+    it('should support options.get param', function() {
+      var entity = new Entity({
+        name: { type: 'string' },
+        age: { type: 'number' },
+        isAdult: { type: 'boolean', get(obj) {
+          return obj.age >= 18 ? true : false;
+        } }
+      });
+      var obj1 = entity.parse({
+        name: 'felix',
+        age: 24,
+      });
+      assert.deepEqual(obj1, {
+        name: 'felix',
+        age: 24,
+        isAdult: true
+      });
+
+      var obj2 = entity.parse({
+        name: 'felix',
+        age: 17,
+      });
+      assert.deepEqual(obj2, {
+        name: 'felix',
+        age: 17,
+        isAdult: false
+      });
+    });
+
+    it('should support difference array config', function() {
+      var entity1 = new Entity({
+        name: { type: 'string' },
+        friends: { type: ['string'] }
+      });
+      var obj = { name: 'felix', friends: ['liqiang', 'wangtao'] };
+      var obj1 = entity1.parse(obj);
+      assert.deepEqual(obj1, obj);
+
+      var entity2 = new Entity({
+        name: { type: 'string' },
+        friends: [{ type: 'string' }]
+      });
+      var obj2 = entity2.parse(obj);
+      assert.deepEqual(obj2, obj);
+    });
+
+    it('should support difference array object config', function() {
+      var childEntity = new Entity({
+        id: { type: 'string' },
+        name: { type: 'string' }
+      });
+      var entity1 = new Entity({
+        name: { type: 'string' },
+        children: { type: ['object'], default: [], using: childEntity }
+      });
+      var rawObj = { name: 'liqiang', children: [{ id: 1, name: 'first' }, { id: 2, name: 'second' }] };
+      var obj1 = entity1.parse(rawObj);
+      assert.deepEqual(rawObj, obj1);
+
+      var entity2 = new Entity({
+        name: { type: 'string' },
+        children: [{ type: 'object', using: childEntity }]
+      });
+      var obj2 = entity2.parse(rawObj);
+      assert.deepEqual(rawObj, obj2);
+    });
+
+    it('simplify sub-entity', function() {
+      var entity1 = new Entity({
+        name: { type: 'string' },
+        info: {
+          age: { type: 'number' },
+          gender: { type: 'string' },
+          type: { type: 'string' }
+        }
+      });
+      var obj1 = { name: 'felix', info: { age: 18, gender: 'male', type: 'a' } };
+      var obj2 = entity1.parse(obj1);
+      assert.deepEqual(obj1, obj2);
+
+      var obj3 = entity1.parse({ name: 'felix', info: { age: 18, gender: 'male', type: 'a', sex: 1 }, nickname: 'whatever' });
+      assert.deepEqual(obj1, obj3);
+
+      var entity2 = new Entity({
+        name: { type: 'string' },
+        friends: [{
+          name: { type: 'string' },
+          age: { type: 'number' }
+        }]
+      });
+      var obj4 = { name: 'felix', friends: [{ name: 'liqiang', age: 18 }, { name: 'wangtao', age: 18 }] };
+      var obj5 = entity2.parse(obj4);
+      assert.deepEqual(obj4, obj5);
+
+      var obj6 = entity2.parse({ name: 'felix', friends: [{ name: 'liqiang', age: 18, nickname: 'a' }, { name: 'wangtao', age: 18, nickname: 'a' }], nickname: 'a' });
+      assert.deepEqual(obj4, obj6);
+    });
+
+    it('using sub-entity directly', function() {
+      var childEntity = new Entity({ id: { type: 'number' }, name: { type: 'string' } });
+      var entity = new Entity({
+        nickname: { type: 'string' },
+        child: childEntity
+      });
+      var obj = { nickname: 'felix', child: { id: 1, name: 'a' } };
+      var obj1 = entity.parse(obj);
+      assert.deepEqual(obj, obj1);
+
+      var entity2 = new Entity({
+        nickname: { type: 'string' },
+        child: [childEntity]
+      });
+      var obj2 = { nickname: 'felix', child: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }] };
+      var obj3 = entity2.parse(obj2);
+      assert.deepEqual(obj2, obj3);
+    });
+
+    it('sub-entity default value should be null', function() {
+      var childEntity = new Entity({
+        id: { type: 'string' },
+        name: { type: 'string' }
+      });
+      var entity = new Entity({
+        name: { type: 'string' },
+        child: childEntity
+      });
+
+      var obj = { name: 'liqiang' };
+      assert(entity.parse(obj).child === null);
+    });
+
+    it('array sub-entity default value should be []', function() {
+      var childEntity = new Entity({
+        id: { type: 'string' },
+        name: { type: 'string' }
+      });
+      var entity = new Entity({
+        name: { type: 'string' },
+        children: [childEntity]
+      });
+
+      var obj = { name: 'liqiang' };
+      assert.deepEqual(entity.parse(obj), { name: 'liqiang', children: [] });
+    });
+
+    it('should support complex situation', function() {
+      var entity1 = new Entity({
+        name: { type: 'string' },
+        friends: [{ type: ['object'] }, function(obj) {
+          return (obj.friends || []).map(o => ({
+            name: o.name || '',
+            age: (o.age || 0) + 1
+          }));
+        }]
+      });
+      var entity2 = new Entity({
+        name: { type: 'string' },
+        friends: {
+          type: ['object'],
+          get(obj) {
+            return (obj.friends || []).map(o => ({
+              name: o.name || '',
+              age: (o.age || 0) + 1
+            }));
+          }
+        }
+      });
+      var entity3 = new Entity({
+        name: { type: 'string' },
+        friends: [{
+          type: 'object',
+          get(obj) {
+            return (obj.friends || []).map(o => ({
+              name: o.name || '',
+              age: (o.age || 0) + 1
+            }));
+          }
+        }]
+      });
+      var rawObj = { name: 'liqiang', friends: [{ name: 'first', age: 1 }, { name: 'second', age: 2 }] };
+      assert.deepEqual(entity1.parse(rawObj), entity2.parse(rawObj));
+      assert.deepEqual(entity1.parse(rawObj), entity3.parse(rawObj));
     });
   });
 
@@ -109,20 +294,19 @@ describe('Entity', function() {
   describe('#add()', function() {
     it('should add multi-fields', function() {
       var entity;
-      var fn = function(){ entity = SomeEntity.add('name', 'age', 'gender'); };
+      var fn = function(){ entity = SomeEntity.add('name', 'gender', { type: 'string' }); };
 
       expect(fn).to.not.throw(Error);
 
       var obj = entity.parse({ name: 'felix', gender: 'male', age: 20 });
 
       expect(obj).to.have.property('name', 'felix');
-      expect(obj).to.have.property('age', 20);
       expect(obj).to.have.property('gender', 'male');
     });
 
     it('should add multi-fields with :default option', function() {
       var entity;
-      var fn = function(){ entity = SomeEntity.add('name', 'age', 'gender', { default: 'default' }); };
+      var fn = function(){ entity = SomeEntity.add('name', 'age', 'gender', { type: 'string', default: 'default' }); };
 
       expect(fn).to.not.throw(Error);
 
@@ -148,12 +332,12 @@ describe('Entity', function() {
 
     it('should add one field with :using option', function() {
       var infoEntity = new Entity({
-        age: true,
+        age: { type: 'number' },
         sex: { type: 'string', default: 'male' }
       });
 
       var entity = new Entity({
-        name: true
+        name: { type: 'string' }
       })
       .add('info', { using: infoEntity });
 
@@ -166,7 +350,7 @@ describe('Entity', function() {
 
     it('should add one field with options or function', function() {
       SomeEntity.add('name', { using: SomeOtherEntity, as: 'fullName' });
-      SomeEntity.add('age', { default: 20 }, function(obj) {
+      SomeEntity.add('age', { type: 'number', default: 20 }, function(obj) {
         return obj.age && obj.age * 2;
       });
       SomeEntity.add('gender', { default: 20, using: SomeOtherEntity }, function(obj) {
@@ -183,7 +367,7 @@ describe('Entity', function() {
 
     it('should format date according to format option', function() {
       SomeEntity
-        .add('name')
+        .add('name', { type: 'string' })
         .add('borned', { format: 'iso' });
 
       var obj = SomeEntity.parse({ name: 'felix', borned: new Date(1990, 0, 1) });
@@ -191,7 +375,7 @@ describe('Entity', function() {
       expect(obj).to.have.property('borned', new Date(1990, 0, 1).toISOString());
 
       SomeOtherEntity
-        .add('name')
+        .add('name', { type: 'string' })
         .add('borned', { format: 'timestamp' });
 
       var obj1 = SomeOtherEntity.parse({ name: 'felix', borned: new Date(1990, 0, 1) });
@@ -256,6 +440,17 @@ describe('Entity', function() {
 
       expect(fn).to.throw(Error);
     });
+
+    it('should throw an error when ignore type field', function() {
+      var fn = function() {
+        SomeEntity.add('name', {});
+      };
+      expect(fn).to.throw(Error);
+
+      SomeOtherEntity.add('name', { type: 'string' });
+      var obj = SomeOtherEntity.parse({ name: 'felix', age: 18 });
+      assert.deepEqual(obj, { name: 'felix' });
+    });
   });
 
   describe('#expose()', function() {
@@ -267,7 +462,7 @@ describe('Entity', function() {
   describe('#unexpose()', function() {
     it('should hide fields from exposure', function() {
       var entity = new Entity({
-        name: true,
+        name: { type: 'string' },
         age: { type: 'number', default: 18 },
         gender: { type: 'string', default: 'male' }
       });
@@ -291,24 +486,24 @@ describe('Entity', function() {
     beforeEach(function() {
       UserEntity = new Entity();
       UserEntity.add('name', 'city', { type: 'string' });
-      UserEntity.add('age', { default: 0 });
-      UserEntity.add('gender', { default: 'unknown' });
-      UserEntity.add('isAdult', function(obj) {
+      UserEntity.add('age', { type: 'number', default: 0 });
+      UserEntity.add('gender', { type: 'string', default: 'unknown' });
+      UserEntity.add('isAdult', { type: 'boolean' }, function(obj) {
         return (obj && obj.age >= 18 ? true : false);
       });
       UserEntity.add('points', { value: 100, if: function(obj) {
         return obj && obj.age >= 18;
       } });
-      UserEntity.add('description', { as: 'introduction' });
-      UserEntity.add('isSignedIn', function(obj, options) {
+      UserEntity.add('description', { type: 'string', as: 'introduction' });
+      UserEntity.add('isSignedIn', { type: 'boolean' }, function(obj, options) {
         return (options && options.isSignedIn ? true : false);
       });
-      UserEntity.add('birthday', { default: new Date('2015-10-10 10:00:00') });
+      UserEntity.add('birthday', { type: 'string', default: new Date('2015-10-10 10:00:00') });
 
       UserEntity.add('hasGirlfriend', { type: 'boolean' });
 
       SocialEntity = new Entity();
-      SocialEntity.add('qq', 'skype', 'facebook', 'twitter');
+      SocialEntity.add('qq', 'skype', 'facebook', 'twitter', { type: 'string' });
 
       UserEntity.add('social', { using: SocialEntity });
       UserEntity.add('habits', { type: ['string'] });
@@ -363,8 +558,8 @@ describe('Entity', function() {
     });
 
     it('should return sub-fields specified by using Entity', function() {
-      var user = { social: { qq: 66666666, skype: 'mySkype', facebook: 'myFacebook', twitter: 'myTwitter', tumblr: 'myTumblr' } };
-      var user1 = { social: [{ qq: 66666666, skype: 'mySkype', facebook: 'myFacebook', twitter: 'myTwitter', tumblr: 'myTumblr' }] };
+      var user = { social: { qq: '66666666', skype: 'mySkype', facebook: 'myFacebook', twitter: 'myTwitter', tumblr: 'myTumblr' } };
+      var user1 = { social: [{ qq: '66666666', skype: 'mySkype', facebook: 'myFacebook', twitter: 'myTwitter', tumblr: 'myTumblr' }] };
 
       var result = UserEntity.parse(user);
       var result1 = UserEntity.parse(user1);
@@ -411,13 +606,13 @@ describe('Entity', function() {
   describe('#clone()', function() {
     it('should clone provided Entity object', function() {
       var entity = new Entity({
-        name: true
+        name: { type: 'string' }
       });
       var obj1 = entity.parse({ name: 'felix' });
       expect(obj1).to.have.property('name', 'felix');
 
       var inheritedEntity = Entity.clone(entity)
-        .add('age', { default: 18 });
+        .add('age', { type: 'number', default: 18 });
 
       var obj2 = inheritedEntity.parse({ name: 'felix' });
       expect(obj2).to.have.property('name', 'felix');
@@ -429,12 +624,12 @@ describe('Entity', function() {
   describe('#safeAdd()', function() {
     it('should create a new entity by calling safeAdd', function() {
       var entity = new Entity({
-        name: true
+        name: { type: 'string' }
       });
       var obj1 = entity.parse({ name: 'felix' });
       expect(obj1).to.have.property('name', 'felix');
 
-      var newEntity = entity.safeAdd('age', { default: 18 });
+      var newEntity = entity.safeAdd('age', { type: 'number', default: 18 });
 
       var obj2 = newEntity.parse({ name: 'felix' });
       expect(obj2).to.have.property('name', 'felix');
@@ -452,13 +647,13 @@ describe('Entity', function() {
   describe('#extend()', function() {
     it('should create a new Entity object based on provided one and object', function() {
       var entity = new Entity({
-        name: true
+        name: { type: 'string' }
       });
       var obj1 = entity.parse({ name: 'felix' });
       expect(obj1).to.have.property('name', 'felix');
 
       var inheritedEntity = Entity.extend(entity, { age: { type: 'number', default: 18 } })
-        .add('gender', { default: 'male' });
+        .add('gender', { type: 'string', default: 'male' });
 
       var obj2 = inheritedEntity.parse({ name: 'felix' });
       expect(obj2).to.have.property('name', 'felix');
@@ -466,6 +661,123 @@ describe('Entity', function() {
       expect(obj2).to.have.property('gender', 'male');
       expect(obj1).to.not.have.property('age');
       expect(obj1).to.not.have.property('male');
+    });
+  });
+
+  describe('#pick()', function() {
+    it('should create a new Entity only contain specified fields', function() {
+      var entity = new Entity({
+        name: { type: 'string' },
+        age: { type: 'number' }
+      });
+      var pickedEntity1 = entity.pick('name');
+      var pickedEntity2 = entity.pick({ name: 1 });
+
+      var rawObj = { name: 'liqiang', age: 25 };
+      var obj = entity.parse(rawObj);
+      var obj1 = pickedEntity1.parse(rawObj);
+      var obj2 = pickedEntity2.parse(rawObj);
+
+      assert.deepEqual(obj, { name: 'liqiang', age: 25 });
+      assert.deepEqual(obj1, { name: 'liqiang' });
+      assert.deepEqual(obj2, { name: 'liqiang' });
+
+      var pickedEntity3 = entity.pick();
+      var obj3 = pickedEntity3.parse(rawObj);
+      assert.deepEqual(obj3, rawObj);
+
+      var pickedEntity4 = entity.pick('name age');
+      var obj4 = pickedEntity4.parse(rawObj);
+      assert.deepEqual(obj4, rawObj);
+    });
+
+    it('should throw an error if pick fields not exist', function () {
+      function pick() {
+        var entity = new Entity({
+          name: { type: 'string' },
+          age: { type: 'number' }
+        });
+        var newEntity = entity.pick('name sex');
+      }
+
+      expect(pick).to.throw(Error);
+    });
+
+    it('could change key\'s name', function() {
+      var entity = new Entity({
+        name: { type: 'string' },
+        age: { type: 'number' }
+      });
+      var pickedEntity1 = entity.pick('name: nickname');
+      var pickedEntity2 = entity.pick({ name: 'nickname' });
+
+      var rawObj = { name: 'liqiang', age: 25 };
+      var obj = entity.parse(rawObj);
+      var obj1 = pickedEntity1.parse(rawObj);
+      var obj2 = pickedEntity2.parse(rawObj);
+
+      assert.deepEqual(obj, { name: 'liqiang', age: 25 });
+      assert.deepEqual(obj1, { nickname: 'liqiang' });
+      assert.deepEqual(obj2, { nickname: 'liqiang' });
+    });
+
+    it('should support sub-entity', function() {
+      var entity = new Entity({
+        name: { type: 'string' },
+        children: [{
+          id: { type: 'number' },
+          name: { type: 'string' }
+        }]
+      });
+      var pickedEntity1 = entity.pick('children');
+      var pickedEntity2 = entity.pick({ children: 1 });
+
+      var rawObj = { name: 'liqiang', children: [{ id: 1, name: 'first' }, {id: 2, name: 'second' }] };
+      var obj1 = pickedEntity1.parse(rawObj);
+      var obj2 = pickedEntity2.parse(rawObj);
+
+      assert.deepEqual(obj1, obj2);
+      assert.deepEqual(obj1, { children: [{ id: 1, name: 'first' }, { id: 2, name: 'second' }] });
+
+
+      var pickedEntity3 = entity.pick('children{id}');
+      var pickedEntity4 = entity.pick({ children: { id: 1 } });
+
+      var obj3 = pickedEntity3.parse(rawObj);
+      var obj4 = pickedEntity4.parse(rawObj);
+
+      assert.deepEqual(obj3, obj4);
+      assert.deepEqual(obj3, { children: [{ id: 1 }, { id: 2 }] });
+
+      var pickedEntity5 = entity.pick('children: child');
+      var obj5 = pickedEntity5.parse(rawObj);
+      assert.deepEqual(obj5, { child: [{ id: 1, name: 'first' }, { id: 2, name: 'second' }] });
+
+      var pickedEntity6 = entity.pick('children{id: uid name}');
+      var obj6 = pickedEntity6.parse(rawObj);
+      assert.deepEqual(obj6, { children: [{ uid: 1, name: 'first' }, { uid: 2, name: 'second' }] });
+    });
+  });
+
+  describe('#toExample()', function() {
+    it('should work', function() {
+      var entity = new Entity({
+        name: { type: 'string' },
+        age: { type: 'number', default: 3 },
+        gender: { type: 'number', example: 1 },
+        birthday: { type: 'date', format: 'iso' },
+        children: [{
+          id: { type: 'string', default: 'a', example: 'b' },
+          name: { type: 'string', example: 'name' },
+        }]
+      });
+
+      var obj = entity.toExample();
+      expect(obj).to.have.property('name', '');
+      expect(obj).to.have.property('age', 3);
+      expect(obj).to.have.property('gender', 1);
+      expect(obj).to.have.property('birthday');
+      assert.deepEqual(obj.children, [{ id: 'b', name: 'name' }]);
     });
   });
 });
