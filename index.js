@@ -722,15 +722,16 @@ Entity.prototype.toExample = function() {
 
     var type = field.type;
     var _isArray = Array.isArray(type);
+    var val;
 
     if (field.using) {
-      var val = field.using.toExample();
+      val = field.using.toExample();
       if (_isArray) val = [val];
       obj[key] = val;
       return;
     }
 
-    var val = field.example;
+    val = field.example;
     if (val === undefined) {
       val = field.default;
       if (val === undefined) {

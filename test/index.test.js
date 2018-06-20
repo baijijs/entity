@@ -131,6 +131,27 @@ describe('Entity', function() {
       assert.deepEqual(obj2, obj);
     });
 
+    it('should support difference array object config', function() {
+      var childEntity = new Entity({
+        id: { type: 'string' },
+        name: { type: 'string' }
+      });
+      var entity1 = new Entity({
+        name: { type: 'string' },
+        children: { type: ['object'], default: [], using: childEntity }
+      });
+      var rawObj = { name: 'liqiang', children: [{ id: 1, name: 'first' }, { id: 2, name: 'second' }] };
+      var obj1 = entity1.parse(rawObj);
+      assert.deepEqual(rawObj, obj1);
+
+      var entity2 = new Entity({
+        name: { type: 'string' },
+        children: [{ type: 'object', using: childEntity }]
+      });
+      var obj2 = entity2.parse(rawObj);
+      assert.deepEqual(rawObj, obj2);
+    });
+
     it('simplify sub-entity', function() {
       var entity1 = new Entity({
         name: { type: 'string' },
@@ -207,6 +228,45 @@ describe('Entity', function() {
 
       var obj = { name: 'liqiang' };
       assert.deepEqual(entity.parse(obj), { name: 'liqiang', children: [] });
+    });
+
+    it('should support complex situation', function() {
+      var entity1 = new Entity({
+        name: { type: 'string' },
+        friends: [{ type: ['object'] }, function(obj) {
+          return (obj.friends || []).map(o => ({
+            name: o.name || '',
+            age: (o.age || 0) + 1
+          }));
+        }]
+      });
+      var entity2 = new Entity({
+        name: { type: 'string' },
+        friends: {
+          type: ['object'],
+          get(obj) {
+            return (obj.friends || []).map(o => ({
+              name: o.name || '',
+              age: (o.age || 0) + 1
+            }));
+          }
+        }
+      });
+      var entity3 = new Entity({
+        name: { type: 'string' },
+        friends: [{
+          type: 'object',
+          get(obj) {
+            return (obj.friends || []).map(o => ({
+              name: o.name || '',
+              age: (o.age || 0) + 1
+            }));
+          }
+        }]
+      });
+      var rawObj = { name: 'liqiang', friends: [{ name: 'first', age: 1 }, { name: 'second', age: 2 }] };
+      assert.deepEqual(entity1.parse(rawObj), entity2.parse(rawObj));
+      assert.deepEqual(entity1.parse(rawObj), entity3.parse(rawObj));
     });
   });
 
