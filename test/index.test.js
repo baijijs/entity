@@ -56,8 +56,8 @@ describe('Entity', function() {
 
       expect(obj4).to.have.property('name', 'felix');
       expect(obj4).to.not.have.property('sex');
-      expect(obj4).to.have.deep.property('profile.location', 'nowhere');
-      expect(obj4).to.not.have.deep.property('profile.hobbies');
+      expect(obj4).to.have.nested.property('profile.location', 'nowhere');
+      expect(obj4).to.not.have.nested.property('profile.hobbies');
     });
 
     it('should be able to chain initialization with add method', function() {
@@ -344,8 +344,8 @@ describe('Entity', function() {
       var obj = entity.parse({ name: 'felix', info: { age: 20 } });
 
       expect(obj).to.have.property('name');
-      expect(obj).to.have.deep.property('info.age', 20);
-      expect(obj).to.have.deep.property('info.sex', 'male');
+      expect(obj).to.have.nested.property('info.age', 20);
+      expect(obj).to.have.nested.property('info.sex', 'male');
     });
 
     it('should add one field with options or function', function() {
@@ -564,17 +564,17 @@ describe('Entity', function() {
       var result = UserEntity.parse(user);
       var result1 = UserEntity.parse(user1);
 
-      expect(result).to.have.deep.property('social.qq', user.social.qq);
-      expect(result).to.have.deep.property('social.skype', user.social.skype);
-      expect(result).to.have.deep.property('social.facebook', user.social.facebook);
-      expect(result).to.have.deep.property('social.twitter', user.social.twitter);
-      expect(result).to.not.have.deep.property('social.tumblr');
+      expect(result).to.have.nested.property('social.qq', user.social.qq);
+      expect(result).to.have.nested.property('social.skype', user.social.skype);
+      expect(result).to.have.nested.property('social.facebook', user.social.facebook);
+      expect(result).to.have.nested.property('social.twitter', user.social.twitter);
+      expect(result).to.not.have.nested.property('social.tumblr');
 
-      expect(result1).to.have.deep.property('social[0].qq', user1.social[0].qq);
-      expect(result1).to.have.deep.property('social[0].skype', user1.social[0].skype);
-      expect(result1).to.have.deep.property('social[0].facebook', user1.social[0].facebook);
-      expect(result1).to.have.deep.property('social[0].twitter', user1.social[0].twitter);
-      expect(result1).to.not.have.deep.property('social[0].tumblr');
+      expect(result1).to.have.nested.property('social[0].qq', user1.social[0].qq);
+      expect(result1).to.have.nested.property('social[0].skype', user1.social[0].skype);
+      expect(result1).to.have.nested.property('social[0].facebook', user1.social[0].facebook);
+      expect(result1).to.have.nested.property('social[0].twitter', user1.social[0].twitter);
+      expect(result1).to.not.have.nested.property('social[0].tumblr');
     });
 
     it('should convert fields value based on converter', function() {
