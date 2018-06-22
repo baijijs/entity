@@ -64,25 +64,14 @@ describe('Entity', function() {
       var entity = new Entity({
         name: { type: 'string' }
       })
-      .add('sex', { type: 'string', as: 'gender' })
-      .add('age', { type: 'number', default: 16 });
+        .add('sex', { type: 'string', as: 'gender' })
+        .add('age', { type: 'number', default: 16 });
 
       var obj = entity.parse({ name: 'felix', sex: 'male' });
 
       expect(obj).to.have.property('name', 'felix');
       expect(obj).to.have.property('gender', 'male');
       expect(obj).to.have.property('age', 16);
-    });
-
-    it('should throw an error if fields value is invalid', function() {
-      function initialize() {
-        var object = {
-          name: 'set a name'
-        };
-        return new Entity(object);
-      }
-
-      expect(initialize).to.throw(Error);
     });
 
     it('should support options.get param', function() {
@@ -202,7 +191,7 @@ describe('Entity', function() {
       assert.deepEqual(obj2, obj3);
     });
 
-    it('sub-entity default value should be null', function() {
+    it('sub-entity default value should be undefined', function() {
       var childEntity = new Entity({
         id: { type: 'string' },
         name: { type: 'string' }
@@ -213,7 +202,7 @@ describe('Entity', function() {
       });
 
       var obj = { name: 'liqiang' };
-      assert(entity.parse(obj).child === null);
+      assert(entity.parse(obj).child === undefined);
     });
 
     it('array sub-entity default value should be []', function() {
@@ -339,7 +328,7 @@ describe('Entity', function() {
       var entity = new Entity({
         name: { type: 'string' }
       })
-      .add('info', { using: infoEntity });
+        .add('info', { using: infoEntity });
 
       var obj = entity.parse({ name: 'felix', info: { age: 20 } });
 
@@ -697,7 +686,7 @@ describe('Entity', function() {
           name: { type: 'string' },
           age: { type: 'number' }
         });
-        var newEntity = entity.pick('name sex');
+        entity.pick('name sex');
       }
 
       expect(pick).to.throw(Error);
@@ -773,7 +762,7 @@ describe('Entity', function() {
       });
 
       var obj = entity.toExample();
-      expect(obj).to.have.property('name', '');
+      expect(obj).to.have.property('name', undefined);
       expect(obj).to.have.property('age', 3);
       expect(obj).to.have.property('gender', 1);
       expect(obj).to.have.property('birthday');
