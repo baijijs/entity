@@ -13,6 +13,51 @@ Expose API fields for endpoint user
 npm install baiji-entity
 ```
 
+## Global config
+
+If you want to use more Simpler type definition, we suggest you set `Entity.types` and `Entity.renames` at project initialization.
+
+### Entity.types
+
+Set default values to different types. If don't set this property, all types default value would be `undefined`.
+
+Attention only the `date` type has `format` propery, other types only have `default` property.
+
+And `format` property have two limit values: `iso` and `timestamp`.
+
+```javascript
+Entity.types = {
+  string: { default: '' },
+  number: { default: 0 },
+  boolean: { default: false },
+  date: { format: 'iso', default: '' },
+  object: { default: {} }
+};
+```
+
+### Entity.renames
+
+Set default config to change one key name to another.
+
+```javascript
+Entity.renames = { _id: 'id' };
+const entity = new Entity({
+  _id: String
+});
+console.log(entity.parse({}));
+// output => { id: '' }
+```
+
+Same effect as:
+
+```javascript
+const entity = new Entity({
+  _id: { type: 'string', as: 'id', default: '' }
+});
+console.log(entity.parse({}));
+// output => { id: '' }
+```
+
 ## API
 
 #### Entity(object)
@@ -55,26 +100,10 @@ const entity = new Entity({
 
 ##### Simpler Definition
 
-You can use the simpler syntax to define an entity.
+You can use the simpler syntax to define an entity. Attention please set [Global config](#Global-config) at project initialization.
 
 ```javascript
 const Entity = require('baiji-entity');
-
-// Suggest set this attribute at project begining
-// Then Entity will set default value to different types
-Entity.types = {
-  string: { default: '' },
-  number: { default: 0 },
-  boolean: { default: false },
-  date: { format: 'iso', default: '' },
-  object: { default: {} }
-};
-
-// The attribute to rename the field name
-// Set at project begining as well
-Entity.renames = { _id: 'id' };
-
-// Then you can use this simper syntax
 const entity = new Entity({
   // like: { type: 'string', as: 'id', default: '' }
   _id: String,
