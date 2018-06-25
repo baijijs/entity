@@ -100,7 +100,7 @@ const entity = new Entity({
 
 ##### Simpler Definition
 
-You can use the simpler syntax to define an entity. Attention please set [Global config](#Global-config) at project initialization.
+You can use the simpler syntax to define an entity. Attention please set [Global config](#global-config) at project initialization.
 
 ```javascript
 const Entity = require('baiji-entity');
