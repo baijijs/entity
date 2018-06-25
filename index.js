@@ -145,7 +145,7 @@ function _addFields(object) {
       string: {},
       number: {},
       boolean: {},
-      dae: {},
+      date: {},
       object: {}
     }, Entity.types);
 
@@ -157,18 +157,28 @@ function _addFields(object) {
         this.add.apply(this, [key, _val]);
         continue;
       }
-      options = Object.assign({}, defaultTypes[_type], { type: _type });
+      options = { type: _type };
     } else {
-      if (Entity.isEntity(_val)) {
-        options = { using: _val };
+      if (_val instanceof Date) {
+        options = { type: 'date', default: _val };
+      } else if (Entity.isEntity(_val)) {
+        options = { type: 'object', using: _val };
       } else if (_mightBeSubEntity(_val)) {
-        options = Object.assign({}, defaultTypes.object, {
-          type: 'object',
-          using: new Entity(_val)
-        });
+        options = { type: 'object', using: new Entity(_val) };
       } else {
         options = _val;
       }
+    }
+
+    // add some default config
+    if (options.type) {
+      var strType;
+      if (typeof options.type === 'string') {
+        strType = options.type;
+      } else if (Array.isArray(options.type) && options.type.length > 0) {
+        strType = options.type[0];
+      }
+      if (strType) options = Object.assign({}, defaultTypes[options.type], options);
     }
 
     if (_isArray) {
@@ -482,8 +492,8 @@ Entity.prototype.add = function() {
     }
 
     // Entity.renames
-    if ((Entity.renames || {}).field) {
-      field = Entity.renames.field;
+    if ((Entity.renames || {})[field]) {
+      field = Entity.renames[field];
       assert(isString(field), 'any of Entity.renames key or value must be string type');
     }
 

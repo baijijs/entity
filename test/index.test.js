@@ -769,4 +769,194 @@ describe('Entity', function() {
       assert.deepEqual(obj.children, [{ id: 'b', name: 'name' }]);
     });
   });
+
+  describe('simplify usage syntax', function() {
+    it('simpler type definition', function() {
+      var childEntity = new Entity({
+        id: String,
+        name: String
+      });
+
+      var entity = new Entity({
+        name: String,
+        age: Number,
+        isAdult: Boolean,
+        birthday: Date,
+        child: childEntity
+      });
+      var now = new Date();
+      var rawObj = {
+        name: 'lq',
+        age: 24,
+        isAdult: true,
+        birthday: now,
+        gender: 1,
+        child: {
+          id: 1,
+          name: 'x'
+        }
+      };
+      var obj = entity.parse(rawObj);
+
+      expect(obj).to.have.property('name', 'lq');
+      expect(obj).to.have.property('age', 24);
+      expect(obj).to.have.property('isAdult', true);
+      expect(obj).to.have.property('birthday', now);
+      expect(obj).to.not.have.property('gender');
+      expect(obj).to.have.nested.property('child.id', '1');
+      expect(obj).to.have.nested.property('child.name', 'x');
+    });
+
+    it('set default value by using simpler type definition', function() {
+      var now = new Date();
+
+      var childEntity = new Entity({
+        id: String,
+        name: String
+      });
+
+      var entity = new Entity({
+        name: String,
+        age: Number,
+        isAdult: Boolean,
+        birthday: Date,
+        child: childEntity,
+        friend: {
+          id: String,
+          name: String
+        }
+      });
+      var obj1 = entity.parse({});
+      expect(obj1).to.have.property('name', undefined);
+      expect(obj1).to.have.property('age', undefined);
+      expect(obj1).to.have.property('isAdult', undefined);
+      expect(obj1).to.have.property('birthday', undefined);
+      expect(obj1).to.have.property('child', undefined);
+      expect(obj1).to.have.property('friend', undefined);
+
+      // set default type property
+      var defaultObject = {};
+
+      Entity.types = {
+        string: { default: '' },
+        number: { default: 0 },
+        boolean: { default: false },
+        date: { format: 'iso', default: now },
+        object: { default: defaultObject }
+      };
+      var entity2 = new Entity({
+        name: String,
+        age: Number,
+        isAdult: Boolean,
+        birthday: Date,
+        child: childEntity,
+        friend: {
+          id: String,
+          name: String
+        }
+      });
+      var obj2 = entity2.parse({});
+      expect(obj2).to.have.property('name', '');
+      expect(obj2).to.have.property('age', 0);
+      expect(obj2).to.have.property('isAdult', false);
+      expect(obj2).to.have.property('birthday', now.toISOString());
+      expect(obj2).to.have.property('child', defaultObject);
+      expect(obj2).to.have.property('friend', defaultObject);
+
+      // reset
+      Entity.types = undefined;
+    });
+
+    it('simpler default value', function() {
+      var now = new Date();
+      var justNow = new Date(now - 1000);
+
+      var entity = new Entity({
+        name: '',
+        age: 0,
+        isAdult: false,
+        birthday: justNow
+      });
+
+      var rawObj = {
+        name: 'lq',
+        age: 24,
+        isAdult: true,
+        birthday: now,
+        gender: 1,
+        child: {
+          id: 1,
+          name: 'x'
+        }
+      };
+      var obj = entity.parse(rawObj);
+      expect(obj).to.have.property('name', 'lq');
+      expect(obj).to.have.property('age', 24);
+      expect(obj).to.have.property('isAdult', true);
+      expect(obj).to.have.property('birthday', now);
+      expect(obj).to.not.have.property('gender');
+      expect(obj).to.not.have.property('child');
+
+      var obj2 = entity.parse({});
+      expect(obj2).to.have.property('name', '');
+      expect(obj2).to.have.property('age', 0);
+      expect(obj2).to.have.property('isAdult', false);
+      expect(obj2).to.have.property('birthday', justNow);
+    });
+
+    it('all array entity default value should be []', function() {
+      var childEntity = new Entity({
+        id: 0,
+        name: ''
+      });
+
+      var entity = new Entity({
+        tags: [String],
+        category: [0],
+        children: [childEntity],
+        friends: [{
+          id: Number
+        }]
+      });
+
+      var rawObj = {
+        tags: ['a', 'b', 'c'],
+        category: [1, 2, 3],
+        children: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }],
+        friends: [{ id: 0 }]
+      };
+      var obj = entity.parse(rawObj);
+      assert.deepEqual(obj, rawObj);
+
+      var obj1 = entity.parse({});
+      assert.deepEqual(obj1, {
+        tags: [],
+        category: [],
+        children: [],
+        friends: []
+      });
+    });
+
+    it ('Entity.renames', function() {
+      Entity.renames = { _id: 'id' };
+      var entity = new Entity({
+        _id: '',
+        name: ''
+      });
+      var rawObj = { _id: 'a' };
+      var obj = entity.parse(rawObj);
+      expect(obj).to.have.property('id', 'a');
+      expect(obj).to.have.property('name', '');
+      expect(obj).to.not.have.property('_id');
+
+      var entity2 = entity.pick('id');
+      var obj2 = entity2.parse(rawObj);
+      expect(obj2).to.have.property('id', 'a');
+      expect(obj2).to.not.have.property('_id');
+      expect(obj2).to.not.have.property('name');
+
+      // reset
+      Entity.renames = undefined;
+    });
+  });
 });
