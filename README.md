@@ -16,14 +16,17 @@ npm install baiji-entity
 ## API
 
 #### Entity(object)
+
 Define a new Entity object with object
 
 The object's key and value pairs are the same as field and options pairs from .add method
 
+##### Normal Definition
+
 ``` javascript
 const Entity = require('baiji-entity');
 
-let entity = new Entity({
+const entity = new Entity({
   name: { type: 'string' },
   sex: { type: 'number', as: 'gender' },
   age: { type: 'number', default: 18 },
@@ -47,6 +50,48 @@ let entity = new Entity({
       return {};
     }
   }
+});
+```
+
+##### Simpler Definition
+
+You can use the simpler syntax to define an entity.
+
+```javascript
+const Entity = require('baiji-entity');
+
+// Suggest set this attribute at project begining
+// Then Entity will set default value to different types
+Entity.types = {
+  string: { default: '' },
+  number: { default: 0 },
+  boolean: { default: false },
+  date: { format: 'iso', default: '' },
+  object: { default: {} }
+};
+
+// The attribute to rename the field name
+// Set at project begining as well
+Entity.renames = { _id: 'id' };
+
+// Then you can use this simper syntax
+const entity = new Entity({
+  // like: { type: 'string', as: 'id', default: '' }
+  _id: String,
+  // like: { type: 'string', default: '' }
+  name: String,
+  // like: { type: 'number', default: 0 }
+  age: Number,
+  // like: { type: 'date', format: 'iso', default: '' }
+  birthday: Date
+});
+
+// Or you can have a different default value
+const entity = new Entity({
+  // like: { type: 'string', default: 'baiji' }
+  name: 'baiji',
+  // like: { type: 'number', default: 10 }
+  age: 10,
 });
 ```
 
@@ -83,6 +128,32 @@ For Entity instance this always return true
 
 ``` javascript
 entity.isEntity(entity);
+```
+
+#### .prototype.pick(string|object)
+
+Pick specific fields from current entity, return a new entity
+
+```javascript
+const entity = new Entity({
+  id: String,
+  name: String,
+  age: Number,
+  children: [{
+    id: String,
+    sex: Number
+  }]
+});
+
+const pickedEntity = entity.pick('id name children{ id }');
+/**
+ * => entity
+ * {
+ *   id: String,
+ *   name: String,
+ *   children: [{ id: String }]
+ * }
+ */
 ```
 
 #### .prototype.add(field1[, field2, ..., fieldn, options, fn])
@@ -135,7 +206,7 @@ Options:
 const Entity = require('baiji-entity');
 
 // Define userEntity
-let userEntity = new Entity({
+const userEntity = new Entity({
   name: { type: 'string' },
   city: { type: 'string' },
   age: { type: 'number', default: 0 },
