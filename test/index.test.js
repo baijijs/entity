@@ -941,19 +941,26 @@ describe('Entity', function() {
       Entity.renames = { _id: 'id' };
       var entity = new Entity({
         _id: '',
-        name: ''
+        name: '',
+        child: {
+          _id: String
+        }
       });
-      var rawObj = { _id: 'a' };
+      var rawObj = { _id: 'a', child: { _id: 'b' } };
       var obj = entity.parse(rawObj);
       expect(obj).to.have.property('id', 'a');
       expect(obj).to.have.property('name', '');
       expect(obj).to.not.have.property('_id');
+      expect(obj).to.have.nested.property('child.id', 'b');
+      expect(obj).to.not.have.nested.property('child._id');
 
       var entity2 = entity.pick('id');
       var obj2 = entity2.parse(rawObj);
       expect(obj2).to.have.property('id', 'a');
       expect(obj2).to.not.have.property('_id');
       expect(obj2).to.not.have.property('name');
+      expect(obj2).to.not.have.nested.property('child._id');
+      expect(obj2).to.not.have.nested.property('child.id');
 
       // reset
       Entity.renames = undefined;
