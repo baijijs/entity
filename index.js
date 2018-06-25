@@ -57,10 +57,27 @@ function isDate(value) {
  * @api private
  */
 function _validateValue(val) {
-  return val === true ||
-    Array.isArray(val) ||
-    isObject(val) ||
-    isFunction(val);
+  if (val === undefined || val === null) return false;
+  if (Array.isArray(val) && val.length === 0) return false;
+  return true;
+}
+
+/**
+ * help to validate type
+ */
+function guessType(type) {
+  switch (type) {
+    case String:
+      return 'string';
+    case Number:
+      return 'number';
+    case Boolean:
+      return 'boolean';
+    case Date:
+      return 'date';
+    default:
+      return undefined;
+  }
 }
 
 /**
@@ -90,6 +107,9 @@ function _mightBeSubEntity(obj) {
 
   if (isString(_obj.type) || isString(_obj.type[0])) return false;
 
+  var _type = Array.isArray(_obj.type) ? _obj.type[0] : _obj.type;
+  if (guessType(_type)) return false;
+
   return true;
 }
 
@@ -112,32 +132,60 @@ function _addFields(object) {
       'Entity definition: object value for key ' + key + ' is invalid, \'' + value + '\''
     );
 
-    if (value === true) {
-      this.add(key, { type: 'any' });
-    } else if (isFunction(value)) {
-      this.add(key, { type: 'any' }, value);
+    var _isArray = Array.isArray(value);
+    if (_isArray && value.length > 1) {
+      this.add.apply(this, [key].concat(value));
+      continue;
+    }
+
+    var _val = _isArray ? value[0] : value;
+    var _type = typeof _val;
+    var options = {};
+    var defaultTypes = Object.assign({
+      string: {},
+      number: {},
+      boolean: {},
+      date: {},
+      object: {}
+    }, Entity.types);
+
+    if (['string', 'number', 'boolean'].indexOf(_type) > -1) {
+      options = { type: _type, default: _val };
+    } else if (_type === 'function') {
+      _type = guessType(_val);
+      if (!_type) {
+        this.add.apply(this, [key, _val]);
+        continue;
+      }
+      options = { type: _type };
     } else {
-      var _isArray = Array.isArray(value);
-      var _isEntity = Entity.isEntity(_isArray ? value[0] : value);
-
-      if (_mightBeSubEntity(value) || _isEntity) {
-        this.add.apply(this, [key, {
-          type: _isArray ? ['object'] : 'object',
-          using: _isEntity ? (_isArray ? value[0] : value) : new Entity(_isArray ? value[0] : value),
-          default: _isArray ? [] : null
-        }]);
+      if (_val instanceof Date) {
+        options = { type: 'date', default: _val };
+      } else if (Entity.isEntity(_val)) {
+        options = { type: 'object', using: _val };
+      } else if (_mightBeSubEntity(_val)) {
+        options = { type: 'object', using: new Entity(_val) };
       } else {
-
-        // [{ type: 'string' }] => { type: ['string] }
-        if (_isArray && value.length === 1 && isObject(value[0])) {
-          if (value[0].type && typeof value[0].type === 'string') {
-            value[0].type = [value[0].type];
-          }
-        }
-
-        this.add.apply(this, [key].concat(value));
+        options = _val;
       }
     }
+
+    // add some default config
+    if (options.type) {
+      var strType;
+      if (typeof options.type === 'string') {
+        strType = options.type;
+      } else if (Array.isArray(options.type) && options.type.length > 0) {
+        strType = options.type[0];
+      }
+      if (strType) options = Object.assign({}, defaultTypes[options.type], options);
+    }
+
+    if (_isArray) {
+      if (!Array.isArray(options.type)) options.type = [options.type];
+      options.default = [];
+    }
+    this.add.apply(this, [key, options]);
   }
 }
 
@@ -417,9 +465,15 @@ Entity.prototype.add = function() {
 
 
     if (!using && !ifFn) {
-      var strType = Array.isArray(type) ? type[0] : type;
+      var _isArray = Array.isArray(type);
+      var strType = _isArray ? type[0] : type;
       if (!~['string', 'number', 'object', 'date', 'boolean'].indexOf(strType)) {
-        throw new Error(`field ${field} missing type field or incorrect value`);
+        strType = guessType(strType);
+        if (strType) {
+          type = _isArray ? [strType] : strType;
+        } else {
+          throw new Error(`field ${field} missing type field or incorrect value`);
+        }
       }
     }
 
@@ -435,6 +489,12 @@ Entity.prototype.add = function() {
     } else if (fn) {
       act = 'function';
       value = fn;
+    }
+
+    // Entity.renames
+    if ((Entity.renames || {})[field]) {
+      field = Entity.renames[field];
+      assert(isString(field), 'any of Entity.renames key or value must be string type');
     }
 
     self._mappings[field] = {
@@ -619,7 +679,11 @@ Entity.prototype.parse = function(obj, options, converter) {
   }
 
   if (isString(options.fields)) {
-    options.fields = stoc(options.fields);
+    try {
+      options.fields = stoc(options.fields);
+    } catch (e) {
+      throw new Error('failed parse string to object');
+    }
   } else if (!isObject(options.fields) || !options.fields) {
     options.fields = Object.create(null);
   }
@@ -739,13 +803,8 @@ Entity.prototype.toExample = function() {
 
         if (field.format) type = 'date';
 
-        val = ({
-          string: '',
-          number: 0,
-          object: null,
-          date: new Date(),
-          boolean: false,
-        })[type];
+        var defaultTypes = Entity.types || {};
+        val = (defaultTypes[type] || {}).default;
 
         val = isDate(val) && field.format ? _format(val, field.format) : val;
 
