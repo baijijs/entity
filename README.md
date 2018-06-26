@@ -3,7 +3,7 @@ Baiji Entity
 
 [![Build Status](https://travis-ci.org/baijijs/entity.svg)](https://travis-ci.org/baijijs/entity)
 
-***A elegance way to restrict API outputs for any web frameworks.***
+***An elegance way to restrict API outputs for any web frameworks.***
 
 Baiji Entity gives you a simple schema for declaring JSON structures thats beats manipulating giant javascript object structures. This is particularly helpful when the generation process is fraught with conditionals and loops.
 
