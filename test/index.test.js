@@ -257,6 +257,26 @@ describe('Entity', function() {
       assert.deepEqual(entity1.parse(rawObj), entity2.parse(rawObj));
       assert.deepEqual(entity1.parse(rawObj), entity3.parse(rawObj));
     });
+
+    it('should correctly parse if change fields\' name', function() {
+      var entity = new Entity({
+        name: { type: 'string' },
+        age: { type: 'number' },
+        children: [{
+          id: { type: 'number' },
+          name: { type: 'string' }
+        }]
+      });
+      var rawObj = { name: 'lq', age: 25, children: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }] };
+      var obj1 = entity.parse(rawObj, { fields: 'name children' });
+      assert.deepEqual(obj1, { name: 'lq', children: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }] });
+
+      var obj2 = entity.parse(rawObj, { fields: 'name: nickname age' });
+      assert.deepEqual(obj2, { nickname: 'lq', age: 25 });
+
+      var obj3 = entity.parse(rawObj, { fields: 'name children: babies { name }' });
+      assert.deepEqual(obj3, { name: 'lq', babies: [{ name: 'a' }, { name: 'b' }] });
+    });
   });
 
   describe('#isEntity(obj)', function() {
@@ -745,6 +765,22 @@ describe('Entity', function() {
       var pickedEntity6 = entity.pick('children{id: uid name}');
       var obj6 = pickedEntity6.parse(rawObj);
       assert.deepEqual(obj6, { children: [{ uid: 1, name: 'first' }, { uid: 2, name: 'second' }] });
+    });
+
+    it('should support pick sub entity and rename', function() {
+      var entity = new Entity({
+        name: { type: 'string' },
+        age: { type: 'number' },
+        children: [{
+          id: { type: 'number' },
+          name: { type: 'string' }
+        }]
+      });
+      var pickedEntity = entity.pick('name children: babies { name }');
+      var rawObj = { name: 'lq', age: 25, children: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }] };
+
+      var obj = pickedEntity.parse(rawObj);
+      assert.deepEqual(obj, { name: 'lq', babies: [{ name: 'a' }, { name: 'b' }] });
     });
   });
 
