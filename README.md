@@ -22,7 +22,7 @@ yarn add baiji-entity
 ``` javascript
 const Entity = require('baiji-entity');
 
-// Presume we have a data object that needs to parse
+// Presume we have a article object that needs to parse
 let article = {
   id: 1,
   content: 'article content ...',
@@ -69,17 +69,18 @@ let articleEntity = new Entity({
   }]
 });
 
-// Parse the data object
+// Parse article data
 articleEntity.parse(article);
 
-// That will generate below object:
+// Outputs =>
 { id: 1,
   content: 'article content ...',
   visitors: 15,
   createdAt: '2018-06-26T08:57:36.793Z',
   updatedAt: '2018-06-26T10:22:28.865Z',
   author: {
-    name: 'Felix', email: 'lyfeyaj@gmail.com'
+    name: 'Felix',
+    email: 'lyfeyaj@gmail.com'
   },
   comments: [
     {
