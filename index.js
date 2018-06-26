@@ -627,19 +627,20 @@ Entity.prototype.pick = function(fields) {
       if (fieldVal) {
         fieldVal = Object.assign({}, fieldVal);
 
+        // change key's name
+        var newKey = fields[key];
+        if (typeof newKey === 'string') key = newKey;
+
         // sub-entity
         if (fieldVal.using) {
           assert(Entity.isEntity(fieldVal.using), 'using must be an Entity');
           fieldVal.using = fieldVal.using.pick(typeof fields[key] !== 'object' ? {} : fields[key]);
         }
 
-        // change key's name
-        var newKey = fields[key];
-        if (typeof newKey === 'string') key = newKey;
-
         newEntity._mappings[key] = fieldVal;
       } else {
-        throw new Error('confirm pick current fields');
+        var isRename = keys.some(k => fields[k] === key);
+        if (!isRename) throw new Error('confirm pick current fields');
       }
     });
     newEntity._keys = Object.keys(newEntity._mappings);
@@ -756,6 +757,10 @@ Entity.prototype.parse = function(obj, options, converter) {
         } catch (err) {
           debug('[ERROR] -> ', err);
         }
+
+        // change key's name
+        var newKey = options.fields[key];
+        if (typeof newKey === 'string') key = newKey;
 
         if (!isDefaultValueApplied && o.using) {
           var opts = Object.assign({}, options);
