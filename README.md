@@ -3,27 +3,114 @@ Baiji Entity
 
 [![Build Status](https://travis-ci.org/baijijs/entity.svg)](https://travis-ci.org/baijijs/entity)
 
-Expose API fields for endpoint user
+***A elegance way to restrict API outputs for any web frameworks.***
 
-# Usage
+Baiji Entity gives you a simple schema for declaring JSON structures thats beats manipulating giant javascript object structures. This is particularly helpful when the generation process is fraught with conditionals and loops.
 
 ## Installation
 
 ```bash
 npm install baiji-entity
+
+# or
+
+yarn add baiji-entity
 ```
 
-## Global config
+## Example
 
-If you want to use more Simpler type definition, we suggest you set `Entity.types` and `Entity.renames` at project initialization.
+``` javascript
+const Entity = require('baiji-entity');
 
-### Entity.types
+// presume we have a data object that needs to be parse
+let article = {
+  id: 1,
+  content: 'article content ...',
+  likesCount: 42,
+  wordsCount: 12422,
+  favoritesCount: 23,
+  commentsCount: 578,
+  visitors: 15,
+  createdAt: 1530003456793,
+  updatedAt: 1530008548865,
+  author: {
+    id: 789,
+    name: 'Felix',
+    email: 'lyfeyaj@gmail.com',
+    articlesCount: 65,
+    password: 'xxxxxxx'
+  },
+  comments: [
+    {
+      content: 'Hello everyone!',
+      createdAt: '2018-03-29T20:45:28-08:00'
+    },
+    {
+      content: 'To you my good sir!',
+      createdAt: '2018-04-16T20:23:24-08:00'
+    }
+  ]
+}
 
-Set default values to different types. If don't set this property, all types default value would be `undefined`.
+// define an article entity
+let articleEntity = new Entity({
+  id: Number,
+  content: String,
+  visitors: Number,
+  createdAt: Date,
+  updatedAt: Date,
+  author: {
+    name: String,
+    email: String,
+  },
+  comments: [{
+    content: String,
+    createdAt: Date
+  }]
+});
 
-Attention only the `date` type has `format` propery, other types only have `default` property.
+// parse javascript object or some kind of data model likewise
+articleEntity.parse(article);
 
-And `format` property have two limit values: `iso` and `timestamp`.
+// will generates below object:
+{ id: 1,
+  content: 'article content ...',
+  visitors: 15,
+  createdAt: '2018-06-26T08:57:36.793Z',
+  updatedAt: '2018-06-26T10:22:28.865Z',
+  author: {
+    name: 'Felix', email: 'lyfeyaj@gmail.com'
+  },
+  comments: [
+    {
+      content: 'Hello everyone!',
+      createdAt: '2018-03-30T04:45:28.000Z'
+    },
+    {
+      content: 'To you my good sir!',
+      createdAt: '2018-04-17T04:23:24.000Z'
+    }
+  ]
+}
+
+// Only those fields specified will be exposed and formatted
+```
+
+## Usage
+
+### General configurations
+
+Entity provide two global options that will help to simply the entity definition.
+
+#### `Entity.types`
+
+Set default values to different types, defaults are `undefined` for all kinds of types.
+
+NOTE: Only `date` type has `format` property, other types only have `default` property.
+
+And `format` property have two limit options: `iso` and `timestamp`.
+
+Example:
 
 ```javascript
 Entity.types = {
@@ -35,16 +122,21 @@ Entity.types = {
 };
 ```
 
-### Entity.renames
+#### `Entity.renames`
 
-Set default config to change one key name to another.
+Set default config to alter one key's name to another.
+
+Example:
 
 ```javascript
 Entity.renames = { _id: 'id' };
+
 const entity = new Entity({
   _id: String
 });
+
 console.log(entity.parse({}));
+
 // output => { id: '' }
 ```
 
@@ -54,17 +146,13 @@ Same effect as:
 const entity = new Entity({
   _id: { type: 'string', as: 'id', default: '' }
 });
+
 console.log(entity.parse({}));
+
 // output => { id: '' }
 ```
 
-## API
-
-#### Entity(object)
-
-Define a new Entity object with object
-
-The object's key and value pairs are the same as field and options pairs from .add method
+### Defining Entities
 
 ##### Normal Definition
 
@@ -124,42 +212,46 @@ const entity = new Entity({
 });
 ```
 
-#### .isEntity(entity)
+### Static methods
+
+#### `Entity.isEntity(entity)`
 Check if an entity object is instance of Entity object
 
 ``` javascript
 Entity.isEntity(entity);
 ```
 
-#### .clone(entity)
+#### `Entity.clone(entity)`
 Clone provided Entity object
 
 ``` javascript
 Entity.clone(entity);
 ```
 
-#### .copy(entity)
+#### `Entity.copy(entity)`
 An alias for .clone method
 
 ``` javascript
 Entity.copy(entity);
 ```
 
-#### .extend(entity, object)
+#### `Entity.extend(entity, object)`
 Extend a new Entity object based on provided one and object
 
 ``` javascript
 Entity.extend(entity, { name: true });
 ```
 
-#### .prototype.isEntity(entity)
+### Instance methods
+
+#### `entity.isEntity(entity)`
 For Entity instance this always return true
 
 ``` javascript
 entity.isEntity(entity);
 ```
 
-#### .prototype.pick(string|object)
+#### `entity.pick(string|object)`
 
 Pick specific fields from current entity, return a new entity
 
@@ -185,7 +277,7 @@ const pickedEntity = entity.pick('id name children{ id }');
  */
 ```
 
-#### .prototype.add(field1[, field2, ..., fieldn, options, fn])
+#### `entity.add(field1[, field2, ..., fieldn, options, fn])`
 Add fields with corresponding value or function for final exposure, method could be chained
 
 Options:
@@ -212,19 +304,19 @@ entity.add('extraInfo', { using: myExtraInfoEntity });
 entity.add('condition', { if: function(obj, options) { return true } });
 ```
 
-#### .prototype.safeAdd(field1[, field2, ..., fieldn, options, fn])
+#### `entity.safeAdd(field1[, field2, ..., fieldn, options, fn])`
 Same as .add function, return a new entity instead of modifying itself
 
-#### .prototype.expose
+#### `entity.expose`
 An alias method for .add
 
-#### .prototype.safeExpose
+#### `entity.safeExpose`
 An alias method for .safeAdd
 
-#### .prototype.unexpose
+#### `entity.unexpose`
 Unexpose certain field, used for extended entity
 
-#### .prototype.parse(object[, options, converter])
+#### `entity.parse(object[, options, converter])`
 Parse an input object according to Entity exposure definition
 
 Options:
@@ -279,6 +371,6 @@ userEntity.parse({
 }
 ```
 
-# License
+## License
 
 MIT
