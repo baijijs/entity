@@ -22,7 +22,7 @@ yarn add baiji-entity
 ``` javascript
 const Entity = require('baiji-entity');
 
-// Presume we have a data object that needs to be parsed
+// Presume we have a data object that needs to parse
 let article = {
   id: 1,
   content: 'article content ...',
@@ -93,20 +93,20 @@ articleEntity.parse(article);
   ]
 }
 
-// See, only those fields specified will be exposed and formatted
+// See, only those fields specified will be exposed and formatted as we expect
 ```
 
 ## Usage
 
 ### General configurations
 
-Entity provide two global options that will help to simply the entity definition.
+Entity provide two global options that will help to simplify the entity definition.
 
 #### `Entity.types`
 
-Set default values to different types, defaults are `undefined` for all kinds of types.
+Set default value to different types. Defaults are `undefined` for all kinds of types.
 
-NOTE: Only `date` type has `format` property, other types only have `default` property.
+**NOTE**: Only `date` type has `format` property, all types have `default` property.
 
 And `format` property have two limit options: `iso` and `timestamp`.
 
@@ -304,7 +304,7 @@ entity.add('extraInfo', { using: myExtraInfoEntity });
 entity.add('condition', { if: function(obj, options) { return true } });
 ```
 
-#### `entity.safeAdd(field1[, field2, ..., fieldn, options, fn])`
+#### `entity.safeAdd(field1[, field2, ..., fieldN, options, fn])`
 Same as .add function, return a new entity instead of modifying itself
 
 #### `entity.expose`
