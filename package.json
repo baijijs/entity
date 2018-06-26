@@ -1,6 +1,6 @@
 {
   "name": "baiji-entity",
-  "version": "1.1.0-alpha.3",
+  "version": "1.1.0-alpha.4",
   "description": "Expose API fields for endpoint user",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,7 @@
   "dependencies": {
     "baiji-normalizer": "^1.0.7",
     "debug": "^3.1.0",
-    "stoc": "^1.0.1"
+    "stoc": "1.0.1"
   },
   "devDependencies": {
     "chai": "^4.1.2",
