@@ -492,7 +492,7 @@ Entity.prototype.add = function() {
     }
 
     // Entity.renames
-    if ((Entity.renames || {})[field]) {
+    if ((Entity.renames || {})[field] && !options.as) {
       field = Entity.renames[field];
       assert(isString(field), 'any of Entity.renames key or value must be string type');
     }
