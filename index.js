@@ -6,48 +6,11 @@ module.exports = Entity;
 /**
  * Module dependencies
  */
-var Normalizer = require('baiji-normalizer');
-var stoc = require('stoc');
-var assert = require('assert');
-var debug = require('debug')('baiji:entity');
-
-/*!
- * toString function
- */
-function toString(value) {
-  return Object.prototype.toString.call(value);
-}
-
-/*!
- * Check object.
- */
-function isObject(value) {
-  var type = typeof value;
-  return !!value && (type === 'object' || type === 'function');
-}
-
-/*!
- * Check string
- */
-function isString(value) {
-  return typeof value === 'string' ||
-         (isObject(value) && toString(value) === '[object String]');
-}
-
-/*!
- * Check function
- */
-function isFunction(value) {
-  var tag = isObject(value) ? toString(value) : '';
-  return tag === '[object Function]' || tag === '[object GeneratorFunction]';
-}
-
-/*!
- * Check date
- */
-function isDate(value) {
-  return isObject(value) && toString(value) === '[object Date]';
-}
+const Normalizer = require('baiji-normalizer');
+const stoc = require('stoc');
+const assert = require('assert');
+const _ = require('lodash');
+const debug = require('debug')('baiji:entity');
 
 /**
  * @method Validating method for Entity object value
@@ -57,7 +20,7 @@ function isDate(value) {
  * @api private
  */
 function _validateValue(val) {
-  if (val === undefined || val === null) return false;
+  if (val == null) return false;
   if (Array.isArray(val) && val.length === 0) return false;
   return true;
 }
@@ -88,15 +51,15 @@ function guessType(type) {
  * @api private
  */
 function _mightBeSubEntity(obj) {
-  if (obj === true || isFunction(obj)) return false;
+  if (obj === true || _.isFunction(obj)) return false;
 
-  var _obj;
+  let _obj;
 
-  if (isObject(obj)) _obj = obj;
+  if (_.isObject(obj)) _obj = obj;
 
   if (Array.isArray(obj)) {
     if (obj.length !== 1) return false;
-    if (obj.length === 1 && isObject(obj[0])) _obj = obj[0];
+    if (obj.length === 1 && _.isObject(obj[0])) _obj = obj[0];
   }
 
   if (!_obj) return false;
@@ -105,9 +68,9 @@ function _mightBeSubEntity(obj) {
 
   if (!_obj.type) return true;
 
-  if (isString(_obj.type) || isString(_obj.type[0])) return false;
+  if (_.isString(_obj.type) || _.isString(_obj.type[0])) return false;
 
-  var _type = Array.isArray(_obj.type) ? _obj.type[0] : _obj.type;
+  let _type = Array.isArray(_obj.type) ? _obj.type[0] : _obj.type;
   if (guessType(_type)) return false;
 
   return true;
@@ -121,27 +84,27 @@ function _mightBeSubEntity(obj) {
  * @api private
  */
 function _addFields(object) {
-  var propNames = Object.keys(object);
+  let propNames = Object.keys(object);
 
-  for (var i = 0; i < propNames.length; i++) {
-    var key = propNames[i];
+  for (let i = 0; i < propNames.length; i++) {
+    let key = propNames[i];
 
-    var value = object[key];
+    let value = object[key];
     assert(
       _validateValue(value),
       'Entity definition: object value for key ' + key + ' is invalid, \'' + value + '\''
     );
 
-    var _isArray = Array.isArray(value);
+    let _isArray = Array.isArray(value);
     if (_isArray && value.length > 1) {
       this.add.apply(this, [key].concat(value));
       continue;
     }
 
-    var _val = _isArray ? value[0] : value;
-    var _type = typeof _val;
-    var options = {};
-    var defaultTypes = Object.assign({
+    let _val = _isArray ? value[0] : value;
+    let _type = typeof _val;
+    let options = {};
+    let defaultTypes = _.assign({
       string: {},
       number: {},
       boolean: {},
@@ -172,13 +135,13 @@ function _addFields(object) {
 
     // add some default config
     if (options.type) {
-      var strType;
-      if (typeof options.type === 'string') {
+      let strType;
+      if (_.isString(options.type)) {
         strType = options.type;
       } else if (Array.isArray(options.type) && options.type.length > 0) {
         strType = options.type[0];
       }
-      if (strType) options = Object.assign({}, defaultTypes[options.type], options);
+      if (strType) options = _.assign({}, defaultTypes[options.type], options);
     }
 
     if (_isArray) {
@@ -204,7 +167,7 @@ function Entity(object) {
 
   if (object === undefined) return;
 
-  assert(isObject(object), object + ' is not a valid object');
+  assert(_.isObject(object), object + ' is not a valid object');
 
   _addFields.call(this, object);
 
@@ -219,7 +182,7 @@ function Entity(object) {
  *
  * @api private
  */
-var _format = function(date, format) {
+let _format = function(date, format) {
   switch(format) {
     case 'iso':
       date = date.toISOString();
@@ -241,8 +204,8 @@ var _format = function(date, format) {
 function _cloneEntity(entity) {
   assert(Entity.isEntity(entity), 'entity must be a valid Entity object');
 
-  var newEntity = new Entity();
-  newEntity._mappings = Object.assign({}, entity._mappings);
+  let newEntity = new Entity();
+  newEntity._mappings = _.assign({}, entity._mappings);
   newEntity._keys = entity._keys.slice();
 
   return newEntity;
@@ -277,9 +240,9 @@ Entity.copy = Entity.clone;
  * @api public
  */
 Entity.extend = function(entity, object) {
-  var newEntity = _cloneEntity(entity);
+  let newEntity = _cloneEntity(entity);
 
-  if (isObject(object)) _addFields.call(newEntity, object);
+  if (_.isObject(object)) _addFields.call(newEntity, object);
 
   return newEntity;
 };
@@ -292,7 +255,7 @@ Entity.extend = function(entity, object) {
  * @api public
  */
 Entity.isEntity = function(entity) {
-  return isObject(entity) && entity instanceof Entity;
+  return _.isObject(entity) && entity instanceof Entity;
 };
 
 /**
@@ -301,9 +264,7 @@ Entity.isEntity = function(entity) {
  *
  * @api public
  */
-Entity.prototype.isEntity = function() {
-  return this instanceof Entity;
-};
+Entity.prototype.isEntity = function() { return true; };
 
 /**
  * @method Clone self
@@ -373,7 +334,7 @@ Entity.prototype.isArray = function(obj) {
  *
  * ####Example:
  *
- *     var entity = new Entity();
+ *     let entity = new Entity();
  *     entity.add('name', { type: 'string', as: 'fullname' });
  *     entity.add('age', { type: 'number', default: 0 });
  *     entity.add('sex', { type: 'string', value: 'male' });
@@ -387,29 +348,29 @@ Entity.prototype.isArray = function(obj) {
  * @api public
  */
 Entity.prototype.add = function() {
-  var fields = Array.prototype.slice.call(arguments);
+  let fields = Array.prototype.slice.call(arguments);
   assert(fields.length !== 0, 'fields should be provided');
 
-  var self = this;
+  let self = this;
 
-  var options = {};
-  var fn;
+  let options = {};
+  let fn;
 
   if (fields.length > 1) {
     // extract `fn`
-    if (isFunction(fields[fields.length - 1])) {
+    if (_.isFunction(fields[fields.length - 1])) {
       fn = fields.pop();
     }
 
     // extract `options`
-    if (isObject(fields[fields.length - 1])) {
-      var last = fields.pop();
-      Object.assign(options, last);
+    if (_.isObject(fields[fields.length - 1])) {
+      let last = fields.pop();
+      _.assign(options, last);
     }
 
     // extract `fn` from `options.get`
     if (options.get) {
-      assert(isFunction(options.get), 'options.get must be function');
+      assert(_.isFunction(options.get), 'options.get must be function');
       fn = options.get;
       delete options.get;
     }
@@ -421,16 +382,16 @@ Entity.prototype.add = function() {
   }
 
   fields.forEach(function(field) {
-    var act ='alias';
-    var value = field;
-    var defaultVal = undefined;
-    var type = undefined;
-    var format = undefined;
-    var using = undefined;
-    var ifFn = undefined;
-    var example = undefined;
+    let act ='alias';
+    let value = field;
+    let defaultVal = undefined;
+    let type = undefined;
+    let format = undefined;
+    let using = undefined;
+    let ifFn = undefined;
+    let example = undefined;
 
-    assert(isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), 'field ' + field + ' must be a string');
+    assert(_.isString(field) && /^[a-zA-Z0-9_]+$/g.test(field), 'field ' + field + ' must be a string');
     assert(!(options.as && fn), 'using :as option with function not allowed');
     assert(!(options.value && fn), 'using :value option with function not allowed');
     assert(!(options.value && options.as), 'using :value option with :as option not allowed');
@@ -454,7 +415,7 @@ Entity.prototype.add = function() {
     }
 
     if (options.if) {
-      assert(isFunction(options.if), 'if condition must be a function');
+      assert(_.isFunction(options.if), 'if condition must be a function');
       ifFn = options.if;
     }
 
@@ -465,8 +426,8 @@ Entity.prototype.add = function() {
 
 
     if (!using && !ifFn) {
-      var _isArray = Array.isArray(type);
-      var strType = _isArray ? type[0] : type;
+      let _isArray = Array.isArray(type);
+      let strType = _isArray ? type[0] : type;
       if (!~['string', 'number', 'object', 'date', 'boolean'].indexOf(strType)) {
         strType = guessType(strType);
         if (strType) {
@@ -477,9 +438,7 @@ Entity.prototype.add = function() {
       }
     }
 
-    if (options.as) {
-      assert(isString(options.as), 'as must be a string');
-    }
+    if (options.as) assert(_.isString(options.as), 'as must be a string');
 
     if (options.as) {
       field = options.as;
@@ -494,7 +453,7 @@ Entity.prototype.add = function() {
     // Entity.renames
     if ((Entity.renames || {})[field] && !options.as) {
       field = Entity.renames[field];
-      assert(isString(field), 'any of Entity.renames key or value must be string type');
+      assert(_.isString(field), 'any of Entity.renames key or value must be string type');
     }
 
     self._mappings[field] = {
@@ -518,7 +477,7 @@ Entity.prototype.add = function() {
  * add function but safe
  */
 Entity.prototype.safeAdd = function() {
-  var entity = _cloneEntity(this);
+  let entity = _cloneEntity(this);
 
   return entity.add.apply(entity, arguments);
 };
@@ -546,7 +505,7 @@ Entity.prototype.safeAdd = function() {
  *
  * ####Example:
  *
- *     var entity = new Entity();
+ *     let entity = new Entity();
  *     entity.expose('name');
  *     entity.expose('name', { as: 'fullname' });
  *     entity.expose('name', { type: 'string', as: 'fullname' });
@@ -571,8 +530,8 @@ Entity.prototype.expose = Entity.prototype.add;
  * @api public
  */
 Entity.prototype.remove = function() {
-  var fields = Array.prototype.slice.call(arguments);
-  var self = this;
+  let fields = Array.prototype.slice.call(arguments);
+  let self = this;
 
   fields.forEach(function(field) {
     if (typeof field === 'string') {
@@ -606,7 +565,7 @@ Entity.prototype.pick = function(fields) {
   // null and undefined => {}
   if (fields == null) fields = {};
 
-  if (isString(fields)) {
+  if (_.isString(fields)) {
     try {
       fields = stoc(fields);
     } catch(e) {
@@ -614,21 +573,21 @@ Entity.prototype.pick = function(fields) {
     }
   }
 
-  if (!isObject(fields)) throw new Error('only accept object or string param');
+  if (!_.isObject(fields)) throw new Error('only accept object or string param');
 
-  var keys = Object.keys(fields);
+  let keys = Object.keys(fields);
   if (!keys.length) {
     return this.clone();
   } else {
-    var newEntity = new Entity();
+    let newEntity = new Entity();
     keys.forEach(key => {
-      var fieldVal = this._mappings[key];
+      let fieldVal = this._mappings[key];
 
       if (fieldVal) {
-        fieldVal = Object.assign({}, fieldVal);
+        fieldVal = _.assign({}, fieldVal);
 
         // change key's name
-        var newKey = fields[key];
+        let newKey = fields[key];
         if (typeof newKey === 'string') key = newKey;
 
         // sub-entity
@@ -639,7 +598,7 @@ Entity.prototype.pick = function(fields) {
 
         newEntity._mappings[key] = fieldVal;
       } else {
-        var isRename = keys.some(k => fields[k] === key);
+        let isRename = keys.some(k => fields[k] === key);
         if (!isRename) throw new Error('confirm pick current fields');
       }
     });
@@ -666,9 +625,9 @@ Entity.prototype.pick = function(fields) {
  */
 Entity.prototype.parse = function(obj, options, converter) {
   debug('parsing %j with options %j and converter', obj, options);
-  var originalObj;
-  var result = {};
-  var self = this;
+  let originalObj;
+  let result = {};
+  let self = this;
 
   originalObj = obj == null ? {} : obj;
 
@@ -679,21 +638,21 @@ Entity.prototype.parse = function(obj, options, converter) {
     options = options || {};
   }
 
-  if (isString(options.fields)) {
+  if (_.isString(options.fields)) {
     try {
       options.fields = stoc(options.fields);
     } catch (e) {
       throw new Error('failed parse string to object');
     }
-  } else if (!isObject(options.fields) || !options.fields) {
+  } else if (!_.isObject(options.fields) || !options.fields) {
     options.fields = Object.create(null);
   }
 
   // Avoid automatically coerce by Normalizer
-  options = Object.assign({ coerce: false }, options);
+  options = _.assign({ coerce: false }, options);
 
   // Choose fields to be exposed
-  var fields = Object.keys(options.fields);
+  let fields = Object.keys(options.fields);
   fields = fields.length ? fields : self._keys;
 
   if (self.isArray(originalObj)) {
@@ -708,10 +667,10 @@ Entity.prototype.parse = function(obj, options, converter) {
       return result;
     } else {
       fields.forEach(function(key) {
-        var o = self._mappings[key];
+        let o = self._mappings[key];
         if (!o) return;
 
-        var val = undefined;
+        let val = undefined;
 
         if (o.if && !o.if(originalObj, options, key)) {
           return;
@@ -734,7 +693,7 @@ Entity.prototype.parse = function(obj, options, converter) {
             break;
         }
 
-        var isDefaultValueApplied = false;
+        let isDefaultValueApplied = false;
         // if value is `null`, `undefined`, set default value
         if (val == null) {
           val = o.default;
@@ -749,7 +708,7 @@ Entity.prototype.parse = function(obj, options, converter) {
         }
 
         // apply format for valid Date object
-        val = isDate(val) && o.format ? _format(val, o.format) : val;
+        val = _.isDate(val) && o.format ? _format(val, o.format) : val;
 
         // Normalize field value with Normalizer except value already parsed by another entity
         try {
@@ -759,11 +718,11 @@ Entity.prototype.parse = function(obj, options, converter) {
         }
 
         // change key's name
-        var newKey = options.fields[key];
+        let newKey = options.fields[key];
         if (typeof newKey === 'string') key = newKey;
 
         if (!isDefaultValueApplied && o.using) {
-          var opts = Object.assign({}, options);
+          let opts = _.assign({}, options);
           delete opts.fields;
           opts.fields = options.fields[key] || {};
           val = o.using.parse(val, opts, converter);
@@ -783,15 +742,15 @@ Entity.prototype.parse = function(obj, options, converter) {
  * @return {Object} plain object
  */
 Entity.prototype.toExample = function() {
-  var obj = {};
-  var _mappings = this._mappings;
+  let obj = {};
+  let _mappings = this._mappings;
 
   this._keys.forEach(key => {
-    var field = _mappings[key];
+    let field = _mappings[key];
 
-    var type = field.type;
-    var _isArray = Array.isArray(type);
-    var val;
+    let type = field.type;
+    let _isArray = Array.isArray(type);
+    let val;
 
     if (field.using) {
       val = field.using.toExample();
@@ -808,10 +767,10 @@ Entity.prototype.toExample = function() {
 
         if (field.format) type = 'date';
 
-        var defaultTypes = Entity.types || {};
+        let defaultTypes = Entity.types || {};
         val = (defaultTypes[type] || {}).default;
 
-        val = isDate(val) && field.format ? _format(val, field.format) : val;
+        val = _.isDate(val) && field.format ? _format(val, field.format) : val;
 
         if (_isArray) val = [val];
       }
